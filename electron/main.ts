@@ -167,7 +167,7 @@ function refreshTrayMenu() {
   tray.setContextMenu(contextMenu)
 }
 
-/** 根据鼠标位置定位窗口，确保不超出屏幕边界 */
+/** 根据鼠标位置定位窗口，优先在鼠标右侧显示，避免遮挡鼠标 */
 function positionWindowNearCursor() {
   if (!mainWindow || mainWindow.isDestroyed()) return
 
@@ -180,10 +180,18 @@ function positionWindowNearCursor() {
   const height = bounds?.height ?? 500
 
   const margin = 12
+  const gap = 10 // 窗口与鼠标的间距
 
-  // 计算窗口位置：鼠标居中，稍微偏下一点避免遮挡鼠标
-  let x = cursor.x - Math.round(width / 2)
-  let y = cursor.y + 20
+  // 计算 Y 位置：鼠标垂直居中
+  let y = cursor.y - Math.round(height / 2)
+
+  // 尝试在鼠标右侧显示
+  let x = cursor.x + gap
+
+  // 如果右侧空间不足，则显示在鼠标左侧
+  if (x + width > workArea.x + workArea.width - margin) {
+    x = cursor.x - width - gap
+  }
 
   // 边界检查：确保窗口不超出屏幕
   x = Math.max(workArea.x + margin, Math.min(x, workArea.x + workArea.width - width - margin))
