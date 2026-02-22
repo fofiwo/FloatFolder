@@ -53,7 +53,7 @@ export default function ContextMenu({ x, y, onAction, onClose }: ContextMenuProp
         <button
           key={item.action}
           onClick={(e) => { e.stopPropagation(); onAction(item.action) }}
-          className={`w-full flex items-center gap-3 px-3 py-[6px] text-[13px] text-mac-text hover:bg-mac-accent hover:text-white transition-colors rounded-[4px] mx-1 ${
+          className={`group/item w-full flex items-center gap-3 px-3 py-[6px] text-[13px] text-mac-text hover:bg-mac-accent hover:text-white transition-colors rounded-[4px] mx-1 ${
             i === 0 ? '' : ''
           }`}
           style={{ width: 'calc(100% - 8px)' }}
@@ -63,7 +63,7 @@ export default function ContextMenu({ x, y, onAction, onClose }: ContextMenuProp
           </svg>
           <span className="flex-1 text-left">{item.label}</span>
           {item.shortcut && (
-            <span className="text-[11px] text-mac-text-tertiary">{item.shortcut}</span>
+            <span className="text-[11px] text-mac-text-tertiary group-hover/item:text-white/70">{item.shortcut}</span>
           )}
         </button>
       ))}

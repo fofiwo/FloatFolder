@@ -139,7 +139,7 @@ export default function FileList({ files, folderPath, showToast }: FileListProps
         /** 普通单击：选中并复制 */
         setSelectedPaths(new Set([file.path]))
         window.electronAPI.copyFile(file.path).then((success) => {
-          showToast(success ? `已复制: ${file.name}` : '复制失败')
+          showToast(success ? `已复制\n${file.name}` : '复制失败')
         })
       }
     },
@@ -246,7 +246,7 @@ export default function FileList({ files, folderPath, showToast }: FileListProps
         case 'copy': {
           const success = await window.electronAPI.copyFile(selected)
           if (success) {
-            showToast(selected.length > 1 ? `已复制 ${selected.length} 个文件` : `已复制: ${file.name}`)
+            showToast(selected.length > 1 ? `已复制\n${selected.length} 个文件` : `已复制\n${file.name}`)
           } else {
             showToast('复制失败')
           }
@@ -254,7 +254,7 @@ export default function FileList({ files, folderPath, showToast }: FileListProps
         }
         case 'copy-path':
           await window.electronAPI.copyPath(file.path)
-          showToast('已复制路径')
+          showToast('已复制\n路径')
           break
         case 'show-in-explorer':
           window.electronAPI.showInExplorer(file.path)
@@ -288,6 +288,7 @@ export default function FileList({ files, folderPath, showToast }: FileListProps
           <button
             onClick={() => setSortMode((prev) => (prev === 'name' ? 'time' : 'name'))}
             title={sortMode === 'name' ? '按名称排序' : '按时间倒序'}
+            aria-label={sortMode === 'name' ? '按名称排序' : '按时间倒序'}
             className="flex-shrink-0 p-1.5 rounded-lg bg-mac-surface border border-mac-border hover:border-mac-accent/50 transition-all text-mac-text-secondary hover:text-mac-text"
           >
             {sortMode === 'name' ? (
@@ -335,7 +336,7 @@ export default function FileList({ files, folderPath, showToast }: FileListProps
       </div>
 
       {/* 底部状态栏 */}
-      <div className="flex items-center justify-between px-3 py-1.5 border-t border-mac-border text-[10px] text-mac-text-tertiary flex-shrink-0 transition-colors duration-200">
+      <div className="flex items-center justify-between px-3 py-1.5 border-t border-mac-border text-[10px] text-mac-text-tertiary flex-shrink-0 transition-colors duration-150">
         <span>{selectedPaths.size > 0 ? `已选 ${selectedPaths.size} / ` : ''}{sortedAndFilteredFiles.length} 个文件</span>
         {hoveredFile ? (
           <span className="truncate max-w-[260px] text-mac-text-secondary">

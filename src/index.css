@@ -17,7 +17,7 @@
   --mac-green: #34c759;
   --mac-text: rgba(0,0,0,0.85);
   --mac-text-secondary: rgba(0,0,0,0.55);
-  --mac-text-tertiary: rgba(0,0,0,0.3);
+  --mac-text-tertiary: rgba(0,0,0,0.45);
   --mac-overlay: rgba(0,0,0,0.04);
   --mac-overlay-strong: rgba(0,0,0,0.08);
   --mac-scrollbar: rgba(0,0,0,0.15);
@@ -43,7 +43,7 @@
   --mac-green: #32d74b;
   --mac-text: rgba(255,255,255,0.88);
   --mac-text-secondary: rgba(255,255,255,0.55);
-  --mac-text-tertiary: rgba(255,255,255,0.3);
+  --mac-text-tertiary: rgba(255,255,255,0.45);
   --mac-overlay: rgba(255,255,255,0.04);
   --mac-overlay-strong: rgba(255,255,255,0.08);
   --mac-scrollbar: rgba(255,255,255,0.12);
@@ -102,7 +102,7 @@ html, body, #root {
 
 /** macOS 风格文件行 */
 .file-row {
-  transition: background-color 0.12s ease;
+  transition: background-color 0.15s ease;
   border-radius: 6px;
 }
 .file-row:hover {
@@ -174,29 +174,6 @@ html, body, #root {
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/** 呼吸灯动画 */
-@keyframes breathing {
-  0%, 100% { opacity: 0.4; transform: scale(0.85); }
-  50% { opacity: 1; transform: scale(1); }
-}
-@keyframes breathing-ring {
-  0%, 100% { opacity: 0; transform: scale(0.8); }
-  50% { opacity: 0.35; transform: scale(1.1); }
-}
-@keyframes pulse-dot {
-  0%, 100% { box-shadow: 0 0 4px 1px rgba(0,122,255,0.3); }
-  50% { box-shadow: 0 0 10px 3px rgba(0,122,255,0.6); }
-}
-.breathing-glow {
-  animation: breathing 3s ease-in-out infinite;
-}
-.breathing-ring {
-  animation: breathing-ring 3s ease-in-out infinite;
-}
-.pulse-dot {
-  animation: pulse-dot 2.5s ease-in-out infinite;
-}
-
 /** 展开/收起过渡 */
 @keyframes expand-in {
   from { opacity: 0; transform: scale(0.92) translateY(4px); }
@@ -211,6 +188,15 @@ html, body, #root {
 }
 .expand-exit {
   animation: collapse-out 0.2s ease forwards;
+}
+
+/** 尊重用户减少动画偏好 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /** 设置面板输入框 */

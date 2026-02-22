@@ -9,20 +9,20 @@ interface TitleBarProps {
 
 export default function TitleBar({ alwaysOnTop, theme, onTogglePin, onToggleTheme, onMinimize, onClose }: TitleBarProps) {
   return (
-    <div className="drag-region flex items-center justify-between h-11 px-4 flex-shrink-0 border-b border-mac-border transition-colors duration-200">
+    <div className="drag-region flex items-center justify-between h-11 px-4 flex-shrink-0 border-b border-mac-border transition-colors duration-150">
       {/* macOS 红绿灯按钮 */}
       <div className="flex items-center gap-2 no-drag traffic-group">
-        <button onClick={onClose} className="traffic-btn" style={{ background: '#ff5f57' }} title="隐藏到托盘">
+        <button onClick={onClose} className="traffic-btn" style={{ background: '#ff5f57' }} title="隐藏到托盘" aria-label="隐藏到托盘">
           <svg width="6" height="6" viewBox="0 0 6 6" fill="none" stroke="#4a0002" strokeWidth="1.2">
             <path d="M0.5 0.5L5.5 5.5M5.5 0.5L0.5 5.5" />
           </svg>
         </button>
-        <button onClick={onMinimize} className="traffic-btn" style={{ background: '#febc2e' }} title="最小化">
+        <button onClick={onMinimize} className="traffic-btn" style={{ background: '#febc2e' }} title="最小化" aria-label="最小化">
           <svg width="6" height="6" viewBox="0 0 6 6" fill="none" stroke="#995700" strokeWidth="1.2">
             <path d="M0.5 3H5.5" />
           </svg>
         </button>
-        <button onClick={onTogglePin} className="traffic-btn" style={{ background: '#28c840' }} title={alwaysOnTop ? '取消置顶' : '置顶窗口'}>
+        <button onClick={onTogglePin} className="traffic-btn" style={{ background: '#28c840' }} title={alwaysOnTop ? '取消置顶' : '置顶窗口'} aria-label={alwaysOnTop ? '取消置顶' : '置顶窗口'}>
           <svg width="6" height="6" viewBox="0 0 6 6" fill="none" stroke="#006500" strokeWidth="1.2">
             {alwaysOnTop ? (
               <>
@@ -53,6 +53,7 @@ export default function TitleBar({ alwaysOnTop, theme, onTogglePin, onToggleThem
         onClick={onToggleTheme}
         className="no-drag w-7 h-7 flex items-center justify-center rounded-md text-mac-text-tertiary hover:text-mac-text-secondary hover:bg-mac-overlay-strong transition-all"
         title={theme === 'dark' ? '切换到亮色模式' : '切换到暗色模式'}
+        aria-label={theme === 'dark' ? '切换到亮色模式' : '切换到暗色模式'}
       >
         {theme === 'dark' ? (
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

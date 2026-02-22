@@ -84,6 +84,7 @@ export default function TabBar({ tabs, activeIndex, onTabChange, onTabRemove, on
 
           <button
             onClick={(e) => { e.stopPropagation(); onTabRemove(index) }}
+            aria-label="关闭标签页"
             className="ml-0.5 opacity-0 group-hover:opacity-100 w-4 h-4 flex items-center justify-center rounded-full hover:bg-mac-overlay-strong transition-all flex-shrink-0"
           >
             <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -99,6 +100,7 @@ export default function TabBar({ tabs, activeIndex, onTabChange, onTabRemove, on
         onClick={onAddTab}
         className="w-7 h-7 flex items-center justify-center rounded-md text-mac-text-tertiary hover:text-mac-text-secondary hover:bg-mac-overlay-strong transition-all flex-shrink-0"
         title="添加文件夹"
+        aria-label="添加文件夹"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
           <path d="M12 5v14M5 12h14" />

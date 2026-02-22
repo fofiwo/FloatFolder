@@ -22,12 +22,12 @@ export default function Preview({ file, x, y }: PreviewProps) {
 
   return (
     <div
-      className="fixed z-50 rounded-mac-lg overflow-hidden shadow-2xl pointer-events-none"
+      className="fixed z-[55] rounded-mac-lg overflow-hidden shadow-2xl pointer-events-none"
       style={{
         left: Math.min(x, window.innerWidth - 240),
         top: Math.min(y, window.innerHeight - 240),
-        /** 预览图容器去掉描边，靠阴影和背景层次区分（更干净） */
         background: 'var(--mac-popup-bg)',
+        border: '1px solid var(--mac-popup-border)',
         maxWidth: '220px',
       }}
     >
