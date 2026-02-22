@@ -173,3 +173,58 @@ html, body, #root {
 .transition-mac {
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
+/** 呼吸灯动画 */
+@keyframes breathing {
+  0%, 100% { opacity: 0.4; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1); }
+}
+@keyframes breathing-ring {
+  0%, 100% { opacity: 0; transform: scale(0.8); }
+  50% { opacity: 0.35; transform: scale(1.1); }
+}
+@keyframes pulse-dot {
+  0%, 100% { box-shadow: 0 0 4px 1px rgba(0,122,255,0.3); }
+  50% { box-shadow: 0 0 10px 3px rgba(0,122,255,0.6); }
+}
+.breathing-glow {
+  animation: breathing 3s ease-in-out infinite;
+}
+.breathing-ring {
+  animation: breathing-ring 3s ease-in-out infinite;
+}
+.pulse-dot {
+  animation: pulse-dot 2.5s ease-in-out infinite;
+}
+
+/** 展开/收起过渡 */
+@keyframes expand-in {
+  from { opacity: 0; transform: scale(0.92) translateY(4px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes collapse-out {
+  from { opacity: 1; transform: scale(1) translateY(0); }
+  to { opacity: 0; transform: scale(0.92) translateY(4px); }
+}
+.expand-enter {
+  animation: expand-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.expand-exit {
+  animation: collapse-out 0.2s ease forwards;
+}
+
+/** 设置面板输入框 */
+.hotkey-input {
+  background: var(--mac-surface);
+  border: 1px solid var(--mac-border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+  color: var(--mac-text);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.hotkey-input:focus {
+  border-color: var(--mac-accent);
+  box-shadow: 0 0 0 3px var(--mac-selected-ring);
+}
