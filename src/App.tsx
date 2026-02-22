@@ -318,32 +318,70 @@ export default function App() {
   const currentTab = tabs[activeTabIndex] || null
   const totalFiles = tabs.reduce((sum, tab) => sum + tab.files.filter(f => !f.isDirectory).length, 0)
 
-  const shouldRenderFloatingIcon = !hotkey || showFloatingIconWithHotkey
-
-  /** 图标模式 */
-  if (viewMode === 'icon') {
-    return (
-      <div className="w-full h-full overflow-hidden bg-transparent">
-        {shouldRenderFloatingIcon ? (
-          <FloatingIcon
-            onExpand={handleExpand}
-            onOpenSettings={handleOpenSettings}
-            fileCount={totalFiles}
-            folderCount={tabs.length}
-          />
-        ) : (
-          /** 快捷键模式默认隐藏悬浮图标：保留透明窗口用于全局快捷键唤醒 */
-          <div className="w-full h-full" />
-        )}
-        <Toast message={toastMessage} visible={toastVisible} />
+  return (
+    <div className="w-full h-full overflow-hidden">
+      {/* icon layer（保持挂载，避免切换时闪烁/重建） */}
+      <div
+        className={`absolute inset-0 bg-transparent transition-opacity duration-150 ${
+          viewMode === 'icon' ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+      >
+        <FloatingIcon
+          onExpand={handleExpand}
+          onOpenSettings={handleOpenSettings}
+          fileCount={totalFiles}
+          folderCount={tabs.length}
+        />
       </div>
-    )
-  }
 
-  /** 设置模式 */
-  if (viewMode === 'settings') {
-    return (
-      <div className="w-full h-full overflow-hidden bg-mac-bg expand-enter">
+      {/* expanded layer */}
+      <div
+        className={`absolute inset-0 flex flex-col overflow-hidden bg-mac-bg transition-opacity duration-150 ${
+          viewMode === 'expanded' ? 'opacity-100 pointer-events-auto expand-enter' : 'opacity-0 pointer-events-none'
+        }`}
+        onMouseEnter={handleExpandedMouseEnter}
+        onMouseLeave={handleExpandedMouseLeave}
+      >
+        <TitleBar
+          alwaysOnTop={alwaysOnTop}
+          theme={theme}
+          onTogglePin={handleTogglePin}
+          onToggleTheme={handleToggleTheme}
+          onOpenSettings={handleOpenSettings}
+          onMinimize={() => setViewMode('icon')}
+          onClose={() => window.electronAPI.windowClose()}
+        />
+
+        {tabs.length > 0 && (
+          <TabBar
+            tabs={tabs}
+            activeIndex={activeTabIndex}
+            onTabChange={handleTabChange}
+            onTabRemove={handleRemoveTab}
+            onAddTab={handleAddFolder}
+            onTabReorder={handleTabReorder}
+          />
+        )}
+
+        <div className="flex-1 overflow-hidden">
+          {currentTab ? (
+            <FileList
+              files={currentTab.files}
+              folderPath={currentTab.path}
+              showToast={showToast}
+            />
+          ) : (
+            <EmptyState onAddFolder={handleAddFolder} />
+          )}
+        </div>
+      </div>
+
+      {/* settings layer */}
+      <div
+        className={`absolute inset-0 overflow-hidden bg-mac-bg transition-opacity duration-150 ${
+          viewMode === 'settings' ? 'opacity-100 pointer-events-auto expand-enter' : 'opacity-0 pointer-events-none'
+        }`}
+      >
         <SettingsPanel
           currentHotkey={hotkey}
           alwaysOnTop={alwaysOnTop}
@@ -359,49 +397,6 @@ export default function App() {
           onShowFloatingIconWithHotkeyChange={handleShowFloatingIconWithHotkeyChange}
           onClose={handleCloseSettings}
         />
-        <Toast message={toastMessage} visible={toastVisible} />
-      </div>
-    )
-  }
-
-  /** 展开模式 */
-  return (
-    <div
-      className="w-full h-full flex flex-col overflow-hidden bg-mac-bg expand-enter"
-      onMouseEnter={handleExpandedMouseEnter}
-      onMouseLeave={handleExpandedMouseLeave}
-    >
-      <TitleBar
-        alwaysOnTop={alwaysOnTop}
-        theme={theme}
-        onTogglePin={handleTogglePin}
-        onToggleTheme={handleToggleTheme}
-        onOpenSettings={handleOpenSettings}
-        onMinimize={() => setViewMode('icon')}
-        onClose={() => window.electronAPI.windowClose()}
-      />
-
-      {tabs.length > 0 && (
-        <TabBar
-          tabs={tabs}
-          activeIndex={activeTabIndex}
-          onTabChange={handleTabChange}
-          onTabRemove={handleRemoveTab}
-          onAddTab={handleAddFolder}
-          onTabReorder={handleTabReorder}
-        />
-      )}
-
-      <div className="flex-1 overflow-hidden">
-        {currentTab ? (
-          <FileList
-            files={currentTab.files}
-            folderPath={currentTab.path}
-            showToast={showToast}
-          />
-        ) : (
-          <EmptyState onAddFolder={handleAddFolder} />
-        )}
       </div>
 
       <Toast message={toastMessage} visible={toastVisible} />

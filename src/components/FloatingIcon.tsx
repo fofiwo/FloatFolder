@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import type { PointerEvent as ReactPointerEvent } from 'react'
 
 interface FloatingIconProps {
   onExpand: () => void
@@ -11,6 +12,9 @@ interface FloatingIconProps {
 export default function FloatingIcon({ onExpand, onOpenSettings, fileCount, folderCount }: FloatingIconProps) {
   const [isHovering, setIsHovering] = useState(false)
   const hoverExpandTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const isDraggingRef = useRef(false)
+  const suppressClickRef = useRef(false)
+  const pointerDownRef = useRef<{ x: number; y: number; offsetX: number; offsetY: number } | null>(null)
 
   useEffect(() => {
     return () => {
@@ -21,7 +25,55 @@ export default function FloatingIcon({ onExpand, onOpenSettings, fileCount, fold
     }
   }, [])
 
+  const handlePointerDown = (e: ReactPointerEvent<HTMLButtonElement>) => {
+    if (e.button !== 0) return
+    pointerDownRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      offsetX: e.clientX,
+      offsetY: e.clientY,
+    }
+  }
+
+  const handlePointerMove = (e: ReactPointerEvent<HTMLButtonElement>) => {
+    const start = pointerDownRef.current
+    if (!start) return
+
+    const dx = e.clientX - start.x
+    const dy = e.clientY - start.y
+    const dist = Math.hypot(dx, dy)
+    if (isDraggingRef.current || dist < 4) return
+
+    /** 达到拖拽阈值：启动主进程自定义拖拽 */
+    isDraggingRef.current = true
+    suppressClickRef.current = true
+
+    if (hoverExpandTimer.current) {
+      clearTimeout(hoverExpandTimer.current)
+      hoverExpandTimer.current = null
+    }
+
+    window.electronAPI.startIconDrag(start.offsetX, start.offsetY)
+  }
+
+  const handlePointerUpOrCancel = () => {
+    pointerDownRef.current = null
+    if (isDraggingRef.current) {
+      window.electronAPI.stopIconDrag()
+      isDraggingRef.current = false
+    }
+  }
+
+  const handleClick = () => {
+    if (suppressClickRef.current) {
+      suppressClickRef.current = false
+      return
+    }
+    onExpand()
+  }
+
   const handleMouseEnter = () => {
+    if (isDraggingRef.current) return
     setIsHovering(true)
 
     /**
@@ -51,17 +103,21 @@ export default function FloatingIcon({ onExpand, onOpenSettings, fileCount, fold
       <div className="relative flex items-center justify-center w-full h-full">
         {/* Siri 光晕：用 conic + blur 做“呼吸灯” */}
         <div
-          className="pointer-events-none absolute w-[68px] h-[68px] rounded-full siri-halo"
+          className="pointer-events-none absolute w-[120px] h-[120px] rounded-full siri-halo"
           style={{
             background:
               'conic-gradient(from 180deg, rgba(10,132,255,0.0), rgba(10,132,255,0.55), rgba(52,199,89,0.45), rgba(255,214,10,0.35), rgba(255,69,58,0.32), rgba(88,86,214,0.5), rgba(10,132,255,0.0))',
-            filter: 'blur(12px)',
+            filter: 'blur(18px)',
           }}
         />
 
         {/* 主 orb：圆形 3D 立体质感 */}
         <button
-          onClick={onExpand}
+          onClick={handleClick}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUpOrCancel}
+          onPointerCancel={handlePointerUpOrCancel}
           onContextMenu={(e) => {
             e.preventDefault()
 
