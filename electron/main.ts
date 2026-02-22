@@ -114,6 +114,10 @@ function createWindow() {
   const windowX = isFirstLaunch ? centerX : (bounds?.x ?? centerX)
   const windowY = isFirstLaunch ? centerY : (bounds?.y ?? centerY)
 
+  /** 根据主题设置初始背景色，避免启动时黑屏 */
+  const theme = store.get('theme') as string
+  const bgColor = theme === 'dark' ? '#1e1e1e' : '#ffffff'
+
   mainWindow = new BrowserWindow({
     x: windowX,
     y: windowY,
@@ -121,12 +125,13 @@ function createWindow() {
     height: defaultHeight,
     minWidth: 300,
     minHeight: 350,
+    show: false,
     frame: false,
     resizable: true,
     maximizable: false,
     fullscreenable: false,
     alwaysOnTop: true,
-    backgroundColor: '#00000000',
+    backgroundColor: bgColor,
     skipTaskbar: false,
     hasShadow: true,
     roundedCorners: true,
@@ -138,13 +143,15 @@ function createWindow() {
     }
   })
 
-  mainWindow.setAlwaysOnTop(true, 'floating')
-
-
-  /** 应用透明度（用户设置） */
-  if (typeof opacity === 'number') {
-    mainWindow.setOpacity(Math.min(1, Math.max(0.4, opacity)))
-  }
+  /** 内容就绪后再显示窗口，避免黑屏闪烁 */
+  mainWindow.once('ready-to-show', () => {
+    if (!mainWindow) return
+    mainWindow.setAlwaysOnTop(store.get('alwaysOnTop') as boolean, 'floating')
+    if (typeof opacity === 'number') {
+      mainWindow.setOpacity(Math.min(1, Math.max(0.4, opacity)))
+    }
+    mainWindow.show()
+  })
 
   if (VITE_DEV_SERVER_URL) {
     /** 带重试的加载机制，解决 Vite 未就绪的时序问题 */
