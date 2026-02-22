@@ -49,7 +49,7 @@ function createWindow() {
     skipTaskbar: true,
     hasShadow: false,
     roundedCorners: true,
-    icon: path.join(__dirname, '../public/icon.svg'),
+    icon: path.join(__dirname, '../public/icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -156,13 +156,17 @@ function saveWindowBounds() {
 
 /** 创建系统托盘 */
 function createTray() {
-  const iconPath = path.join(__dirname, '../public/icon.svg')
+  const iconPath = path.join(__dirname, '../public/icon-16.png')
   let trayIcon: Electron.NativeImage
 
   if (fs.existsSync(iconPath)) {
-    trayIcon = nativeImage.createFromPath(iconPath).resize({ width: 16, height: 16 })
+    trayIcon = nativeImage.createFromPath(iconPath)
   } else {
-    trayIcon = nativeImage.createEmpty()
+    /** 备用：尝试加载大图标并缩放 */
+    const fallback = path.join(__dirname, '../public/icon.png')
+    trayIcon = fs.existsSync(fallback)
+      ? nativeImage.createFromPath(fallback).resize({ width: 16, height: 16 })
+      : nativeImage.createEmpty()
   }
 
   tray = new Tray(trayIcon)

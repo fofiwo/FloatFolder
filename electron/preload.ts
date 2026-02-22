@@ -29,6 +29,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getSettings: () => ipcRenderer.invoke('get-settings'),
   setActiveTab: (index: number) => ipcRenderer.invoke('set-active-tab', index),
   setTheme: (theme: 'light' | 'dark') => ipcRenderer.invoke('set-theme', theme),
+  setHotkey: (hotkey: string) => ipcRenderer.invoke('set-hotkey', hotkey),
+  setWindowMode: (mode: 'icon' | 'expanded') => ipcRenderer.invoke('set-window-mode', mode),
 
   /** 事件监听 */
   onFolderUpdated: (callback: (data: { folderPath: string; files: any[] }) => void) => {
@@ -40,5 +42,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     const handler = (_event: any, data: any) => callback(data)
     ipcRenderer.on('settings-changed', handler)
     return () => ipcRenderer.removeListener('settings-changed', handler)
+  },
+  onToggleExpand: (callback: () => void) => {
+    const handler = () => callback()
+    ipcRenderer.on('toggle-expand', handler)
+    return () => ipcRenderer.removeListener('toggle-expand', handler)
   }
 })

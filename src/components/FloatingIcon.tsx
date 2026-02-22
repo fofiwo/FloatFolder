@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 interface FloatingIconProps {
   onExpand: () => void
@@ -10,12 +10,43 @@ interface FloatingIconProps {
 /** Apple 风格悬浮图标，带呼吸灯效果 */
 export default function FloatingIcon({ onExpand, onOpenSettings, fileCount, folderCount }: FloatingIconProps) {
   const [isHovering, setIsHovering] = useState(false)
+  const hoverExpandTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (hoverExpandTimer.current) {
+        clearTimeout(hoverExpandTimer.current)
+        hoverExpandTimer.current = null
+      }
+    }
+  }, [])
+
+  const handleMouseEnter = () => {
+    setIsHovering(true)
+
+    /**
+     * 悬停自动展开（轻微延迟用于过滤“路过”）
+     * - 只在图标模式窗口内触发
+     */
+    if (hoverExpandTimer.current) clearTimeout(hoverExpandTimer.current)
+    hoverExpandTimer.current = setTimeout(() => {
+      onExpand()
+    }, 120)
+  }
+
+  const handleMouseLeave = () => {
+    setIsHovering(false)
+    if (hoverExpandTimer.current) {
+      clearTimeout(hoverExpandTimer.current)
+      hoverExpandTimer.current = null
+    }
+  }
 
   return (
     <div
       className="w-full h-full flex items-center justify-center drag-region"
-      onMouseEnter={() => setIsHovering(true)}
-      onMouseLeave={() => setIsHovering(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       <div className="relative flex items-center justify-center">
         {/* 呼吸灯外圈 */}
@@ -26,6 +57,12 @@ export default function FloatingIcon({ onExpand, onOpenSettings, fileCount, fold
           onClick={onExpand}
           onContextMenu={(e) => {
             e.preventDefault()
+
+            /** 右键时不触发展开 */
+            if (hoverExpandTimer.current) {
+              clearTimeout(hoverExpandTimer.current)
+              hoverExpandTimer.current = null
+            }
             onOpenSettings()
           }}
           className="no-drag relative w-[44px] h-[44px] rounded-[14px] flex items-center justify-center cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95"
