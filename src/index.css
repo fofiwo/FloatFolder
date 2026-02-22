@@ -197,6 +197,12 @@ html.icon-mode #root {
   100% { transform: translateX(60%) rotate(20deg); opacity: 0; }
 }
 
+@keyframes siri-flow-rotate {
+  0% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(180deg) scale(1.02); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+
 .siri-halo {
   animation: siri-halo 2.6s ease-in-out infinite;
 }
@@ -207,6 +213,11 @@ html.icon-mode #root {
 
 .siri-sheen {
   animation: siri-sheen 3.2s ease-in-out infinite;
+}
+
+.siri-flow {
+  animation: siri-flow-rotate 2.4s linear infinite;
+  transform-origin: 50% 50%;
 }
 
 /** 展开/收起过渡 */

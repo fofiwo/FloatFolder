@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Tray, Menu, dialog, shell, nativeImage, clipboard, globalShortcut } from 'electron'
+import { app, BrowserWindow, ipcMain, Tray, Menu, dialog, shell, nativeImage, clipboard, globalShortcut, screen } from 'electron'
 import path from 'path'
 import { execSync } from 'child_process'
 import fs from 'fs'
@@ -9,6 +9,7 @@ import Store from 'electron-store'
 const store = new Store({
   defaults: {
     windowBounds: { x: 100, y: 100, width: 400, height: 500 },
+    iconPosition: { x: 100, y: 100 },
     folders: [] as string[],
     activeTab: 0,
     alwaysOnTop: true,
@@ -20,7 +21,7 @@ const store = new Store({
 })
 
 /** 图标模式窗口尺寸 */
-const ICON_MODE_SIZE = { width: 72, height: 72 }
+const ICON_MODE_SIZE = { width: 96, height: 96 }
 let currentMode: 'icon' | 'expanded' = 'icon'
 
 let mainWindow: BrowserWindow | null = null
@@ -28,16 +29,62 @@ let tray: Tray | null = null
 let registeredHotkey: string | null = null
 const watchers: Map<string, chokidar.FSWatcher> = new Map()
 
+let iconMoveDebounceTimer: ReturnType<typeof setTimeout> | null = null
+
+function saveIconPosition() {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  const [x, y] = mainWindow.getPosition()
+  store.set('iconPosition', { x, y })
+}
+
+function snapIconWindowToEdges() {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  if (currentMode !== 'icon') return
+
+  const bounds = mainWindow.getBounds()
+  const display = screen.getDisplayNearestPoint({ x: bounds.x, y: bounds.y })
+  const workArea = display.workArea
+
+  const threshold = 16
+  let nextX = bounds.x
+  let nextY = bounds.y
+
+  /** left / right */
+  if (Math.abs(bounds.x - workArea.x) <= threshold) {
+    nextX = workArea.x
+  } else if (Math.abs(bounds.x + bounds.width - (workArea.x + workArea.width)) <= threshold) {
+    nextX = workArea.x + workArea.width - bounds.width
+  }
+
+  /** top / bottom */
+  if (Math.abs(bounds.y - workArea.y) <= threshold) {
+    nextY = workArea.y
+  } else if (Math.abs(bounds.y + bounds.height - (workArea.y + workArea.height)) <= threshold) {
+    nextY = workArea.y + workArea.height - bounds.height
+  }
+
+  if (nextX !== bounds.x || nextY !== bounds.y) {
+    mainWindow.setPosition(nextX, nextY, false)
+    store.set('iconPosition', { x: nextX, y: nextY })
+  }
+}
+
+function sendSettingsChanged(patch: Partial<{ alwaysOnTop: boolean; autoLaunch: boolean; opacity: number; theme: 'light' | 'dark'; hotkey: string }>) {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  mainWindow.webContents.send('settings-changed', patch)
+}
+
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL
 const isDev = !!VITE_DEV_SERVER_URL
 
 function createWindow() {
   const bounds = store.get('windowBounds') as { x: number; y: number; width: number; height: number }
-  const alwaysOnTop = store.get('alwaysOnTop') as boolean
+  const iconPosition = store.get('iconPosition') as { x: number; y: number }
+  const opacity = store.get('opacity') as number
 
   mainWindow = new BrowserWindow({
-    x: bounds.x,
-    y: bounds.y,
+    x: iconPosition?.x ?? bounds.x,
+    y: iconPosition?.y ?? bounds.y,
     width: ICON_MODE_SIZE.width,
     height: ICON_MODE_SIZE.height,
     minWidth: 0,
@@ -62,6 +109,11 @@ function createWindow() {
   /** 图标模式：提升置顶级别（Windows 上更稳定） */
   mainWindow.setAlwaysOnTop(true, 'floating')
 
+  /** 应用透明度（用户设置） */
+  if (typeof opacity === 'number') {
+    mainWindow.setOpacity(Math.min(1, Math.max(0.4, opacity)))
+  }
+
   currentMode = 'icon'
 
   if (VITE_DEV_SERVER_URL) {
@@ -83,7 +135,18 @@ function createWindow() {
     if (currentMode === 'expanded') saveWindowBounds()
   })
   mainWindow.on('moved', () => {
-    if (currentMode === 'expanded') saveWindowBounds()
+    if (currentMode === 'expanded') {
+      saveWindowBounds()
+      return
+    }
+
+    /** 图标模式：持久化位置 + 靠边吸附 */
+    saveIconPosition()
+
+    if (iconMoveDebounceTimer) clearTimeout(iconMoveDebounceTimer)
+    iconMoveDebounceTimer = setTimeout(() => {
+      snapIconWindowToEdges()
+    }, 120)
   })
 
   mainWindow.on('closed', () => {
@@ -110,9 +173,10 @@ function setWindowMode(mode: 'icon' | 'expanded') {
 
   if (mode === 'icon') {
     /** 切换到图标模式：缩小窗口 */
+    const [x, y] = mainWindow.getPosition()
     mainWindow.setResizable(false)
     mainWindow.setMinimumSize(0, 0)
-    mainWindow.setSize(ICON_MODE_SIZE.width, ICON_MODE_SIZE.height, true)
+    mainWindow.setBounds({ x, y, width: ICON_MODE_SIZE.width, height: ICON_MODE_SIZE.height }, true)
     mainWindow.setSkipTaskbar(true)
     mainWindow.setHasShadow(false)
 
@@ -121,16 +185,78 @@ function setWindowMode(mode: 'icon' | 'expanded') {
   } else {
     /** 切换到展开模式：恢复保存的窗口尺寸 */
     const bounds = store.get('windowBounds') as { x: number; y: number; width: number; height: number }
+    const [x, y] = mainWindow.getPosition()
     mainWindow.setHasShadow(true)
     mainWindow.setSkipTaskbar(false)
     mainWindow.setMinimumSize(300, 350)
-    mainWindow.setSize(bounds.width, bounds.height, true)
+    mainWindow.setBounds({ x, y, width: bounds.width, height: bounds.height }, true)
     mainWindow.setResizable(true)
 
     /** 展开模式遵循用户的置顶设置 */
     const alwaysOnTop = store.get('alwaysOnTop') as boolean
     mainWindow.setAlwaysOnTop(alwaysOnTop)
   }
+}
+
+function refreshTrayMenu() {
+  if (!tray) return
+
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: '显示窗口',
+      click: () => {
+        mainWindow?.show()
+        mainWindow?.focus()
+      }
+    },
+    {
+      label: '设置',
+      click: () => {
+        mainWindow?.show()
+        mainWindow?.focus()
+        setWindowMode('expanded')
+        mainWindow?.webContents.send('open-settings')
+      }
+    },
+    {
+      label: '置顶窗口',
+      type: 'checkbox',
+      checked: store.get('alwaysOnTop') as boolean,
+      click: (menuItem) => {
+        store.set('alwaysOnTop', menuItem.checked)
+
+        /** 图标模式强置顶：仅保存偏好，不降低置顶级别 */
+        if (currentMode === 'expanded') {
+          mainWindow?.setAlwaysOnTop(menuItem.checked)
+        } else {
+          mainWindow?.setAlwaysOnTop(true, 'floating')
+        }
+
+        sendSettingsChanged({ alwaysOnTop: menuItem.checked })
+        refreshTrayMenu()
+      }
+    },
+    {
+      label: '开机自启',
+      type: 'checkbox',
+      checked: store.get('autoLaunch') as boolean,
+      click: (menuItem) => {
+        store.set('autoLaunch', menuItem.checked)
+        setAutoLaunch(menuItem.checked)
+        sendSettingsChanged({ autoLaunch: menuItem.checked })
+        refreshTrayMenu()
+      }
+    },
+    { type: 'separator' },
+    {
+      label: '退出',
+      click: () => {
+        app.quit()
+      }
+    }
+  ])
+
+  tray.setContextMenu(contextMenu)
 }
 
 /** 注册全局快捷键 */
@@ -184,43 +310,7 @@ function createTray() {
   tray = new Tray(trayIcon)
   tray.setToolTip('FloatFolder - 悬浮文件夹')
 
-  const contextMenu = Menu.buildFromTemplate([
-    {
-      label: '显示窗口',
-      click: () => {
-        mainWindow?.show()
-        mainWindow?.focus()
-      }
-    },
-    {
-      label: '置顶窗口',
-      type: 'checkbox',
-      checked: store.get('alwaysOnTop') as boolean,
-      click: (menuItem) => {
-        store.set('alwaysOnTop', menuItem.checked)
-        mainWindow?.setAlwaysOnTop(menuItem.checked)
-        mainWindow?.webContents.send('settings-changed', { alwaysOnTop: menuItem.checked })
-      }
-    },
-    {
-      label: '开机自启',
-      type: 'checkbox',
-      checked: store.get('autoLaunch') as boolean,
-      click: (menuItem) => {
-        store.set('autoLaunch', menuItem.checked)
-        setAutoLaunch(menuItem.checked)
-      }
-    },
-    { type: 'separator' },
-    {
-      label: '退出',
-      click: () => {
-        app.quit()
-      }
-    }
-  ])
-
-  tray.setContextMenu(contextMenu)
+  refreshTrayMenu()
   tray.on('double-click', () => {
     mainWindow?.show()
     mainWindow?.focus()
@@ -434,10 +524,35 @@ ipcMain.handle('window-close', () => {
 })
 
 ipcMain.handle('toggle-always-on-top', () => {
-  const current = mainWindow?.isAlwaysOnTop() ?? false
-  mainWindow?.setAlwaysOnTop(!current)
-  store.set('alwaysOnTop', !current)
-  return !current
+  const current = store.get('alwaysOnTop') as boolean
+  const next = !current
+  store.set('alwaysOnTop', next)
+
+  /** 图标模式强置顶：仅保存偏好，不降低置顶级别 */
+  if (currentMode === 'expanded') {
+    mainWindow?.setAlwaysOnTop(next)
+  } else {
+    mainWindow?.setAlwaysOnTop(true, 'floating')
+  }
+
+  sendSettingsChanged({ alwaysOnTop: next })
+  refreshTrayMenu()
+  return next
+})
+
+ipcMain.handle('set-always-on-top', (_event, enable: boolean) => {
+  store.set('alwaysOnTop', enable)
+
+  /** 图标模式强置顶：仅保存偏好，不降低置顶级别 */
+  if (currentMode === 'expanded') {
+    mainWindow?.setAlwaysOnTop(enable)
+  } else {
+    mainWindow?.setAlwaysOnTop(true, 'floating')
+  }
+
+  sendSettingsChanged({ alwaysOnTop: enable })
+  refreshTrayMenu()
+  return enable
 })
 
 /** 获取设置 */
@@ -472,6 +587,24 @@ ipcMain.handle('set-theme', (_event, theme: 'light' | 'dark') => {
   if (mainWindow) {
     mainWindow.setBackgroundColor(theme === 'dark' ? '#1e1e1e' : '#ffffff')
   }
+
+  sendSettingsChanged({ theme })
+})
+
+ipcMain.handle('set-auto-launch', (_event, enable: boolean) => {
+  store.set('autoLaunch', enable)
+  setAutoLaunch(enable)
+  sendSettingsChanged({ autoLaunch: enable })
+  refreshTrayMenu()
+  return enable
+})
+
+ipcMain.handle('set-opacity', (_event, opacity: number) => {
+  const safeOpacity = Math.min(1, Math.max(0.4, opacity))
+  store.set('opacity', safeOpacity)
+  mainWindow?.setOpacity(safeOpacity)
+  sendSettingsChanged({ opacity: safeOpacity })
+  return safeOpacity
 })
 
 /** 重排文件夹顺序 */
@@ -536,6 +669,9 @@ ipcMain.handle('get-small-thumbnail', async (_event, filePath: string, maxSize: 
 app.whenReady().then(() => {
   createWindow()
   createTray()
+
+  /** 启动时同步开机自启状态（避免仅切换时生效，重启后状态不一致） */
+  setAutoLaunch(store.get('autoLaunch') as boolean)
 })
 
 app.on('window-all-closed', () => {

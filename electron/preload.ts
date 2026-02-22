@@ -31,6 +31,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setTheme: (theme: 'light' | 'dark') => ipcRenderer.invoke('set-theme', theme),
   setHotkey: (hotkey: string) => ipcRenderer.invoke('set-hotkey', hotkey),
   setWindowMode: (mode: 'icon' | 'expanded') => ipcRenderer.invoke('set-window-mode', mode),
+  setAlwaysOnTop: (enable: boolean) => ipcRenderer.invoke('set-always-on-top', enable),
+  setAutoLaunch: (enable: boolean) => ipcRenderer.invoke('set-auto-launch', enable),
+  setOpacity: (opacity: number) => ipcRenderer.invoke('set-opacity', opacity),
 
   /** 事件监听 */
   onFolderUpdated: (callback: (data: { folderPath: string; files: any[] }) => void) => {
@@ -42,6 +45,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     const handler = (_event: any, data: any) => callback(data)
     ipcRenderer.on('settings-changed', handler)
     return () => ipcRenderer.removeListener('settings-changed', handler)
+  },
+  onOpenSettings: (callback: () => void) => {
+    const handler = () => callback()
+    ipcRenderer.on('open-settings', handler)
+    return () => ipcRenderer.removeListener('open-settings', handler)
   },
   onToggleExpand: (callback: () => void) => {
     const handler = () => callback()

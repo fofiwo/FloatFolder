@@ -3,7 +3,14 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 interface SettingsPanelProps {
   currentHotkey: string
   alwaysOnTop: boolean
+  autoLaunch: boolean
+  opacity: number
+  theme: 'light' | 'dark'
   onHotkeyChange: (hotkey: string) => void
+  onAlwaysOnTopChange: (enable: boolean) => void
+  onAutoLaunchChange: (enable: boolean) => void
+  onOpacityChange: (opacity: number) => void
+  onThemeChange: (theme: 'light' | 'dark') => void
   onClose: () => void
 }
 
@@ -53,10 +60,26 @@ function formatHotkey(hotkey: string): string {
     .replace(/\+/g, ' ')
 }
 
-export default function SettingsPanel({ currentHotkey, alwaysOnTop, onHotkeyChange, onClose }: SettingsPanelProps) {
+export default function SettingsPanel({
+  currentHotkey,
+  alwaysOnTop,
+  autoLaunch,
+  opacity,
+  theme,
+  onHotkeyChange,
+  onAlwaysOnTopChange,
+  onAutoLaunchChange,
+  onOpacityChange,
+  onThemeChange,
+  onClose,
+}: SettingsPanelProps) {
   const [isRecording, setIsRecording] = useState(false)
   const [pendingHotkey, setPendingHotkey] = useState('')
   const inputRef = useRef<HTMLDivElement>(null)
+
+  const handleThemeToggle = useCallback(() => {
+    onThemeChange(theme === 'dark' ? 'light' : 'dark')
+  }, [theme, onThemeChange])
 
   /** 监听快捷键录制 */
   useEffect(() => {
@@ -118,6 +141,89 @@ export default function SettingsPanel({ currentHotkey, alwaysOnTop, onHotkeyChan
 
       {/* 设置内容 */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5">
+        {/* 常用设置 */}
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-mac-accent">
+              <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.18.33.28.71.28 1.09V10a1 1 0 0 0 1 1h.09a2 2 0 1 1 0 4h-.09a1 1 0 0 0-1 1Z" />
+            </svg>
+            <span className="text-[13px] text-mac-text font-medium">常用设置</span>
+          </div>
+
+          <div className="space-y-3">
+            {/* 置顶 */}
+            <div className="flex items-center justify-between rounded-md border border-mac-border px-3 py-2 bg-mac-surface">
+              <div>
+                <div className="text-[12px] text-mac-text">窗口置顶</div>
+                <div className="text-[11px] text-mac-text-tertiary">仅在展开模式下生效</div>
+              </div>
+              <button
+                onClick={() => onAlwaysOnTopChange(!alwaysOnTop)}
+                className={`w-10 h-6 rounded-full p-0.5 transition-colors ${alwaysOnTop ? 'bg-mac-accent' : 'bg-mac-hover'}`}
+                aria-label="切换窗口置顶"
+                title="切换窗口置顶"
+              >
+                <div className={`h-5 w-5 rounded-full bg-white transition-transform ${alwaysOnTop ? 'translate-x-4' : 'translate-x-0'}`} />
+              </button>
+            </div>
+
+            {/* 开机自启 */}
+            <div className="flex items-center justify-between rounded-md border border-mac-border px-3 py-2 bg-mac-surface">
+              <div>
+                <div className="text-[12px] text-mac-text">开机自启</div>
+                <div className="text-[11px] text-mac-text-tertiary">随系统登录自动启动</div>
+              </div>
+              <button
+                onClick={() => onAutoLaunchChange(!autoLaunch)}
+                className={`w-10 h-6 rounded-full p-0.5 transition-colors ${autoLaunch ? 'bg-mac-accent' : 'bg-mac-hover'}`}
+                aria-label="切换开机自启"
+                title="切换开机自启"
+              >
+                <div className={`h-5 w-5 rounded-full bg-white transition-transform ${autoLaunch ? 'translate-x-4' : 'translate-x-0'}`} />
+              </button>
+            </div>
+
+            {/* 透明度 */}
+            <div className="rounded-md border border-mac-border px-3 py-2 bg-mac-surface">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-[12px] text-mac-text">窗口透明度</div>
+                  <div className="text-[11px] text-mac-text-tertiary">范围 40% - 100%</div>
+                </div>
+                <span className="text-[11px] text-mac-text-secondary font-mono">{Math.round(opacity * 100)}%</span>
+              </div>
+              <input
+                type="range"
+                min={40}
+                max={100}
+                value={Math.round(opacity * 100)}
+                onChange={(e) => onOpacityChange(Number(e.target.value) / 100)}
+                className="mt-2 w-full"
+              />
+            </div>
+
+            {/* 主题 */}
+            <div className="flex items-center justify-between rounded-md border border-mac-border px-3 py-2 bg-mac-surface">
+              <div>
+                <div className="text-[12px] text-mac-text">主题</div>
+                <div className="text-[11px] text-mac-text-tertiary">{theme === 'dark' ? '暗色模式' : '亮色模式'}</div>
+              </div>
+              <button
+                onClick={handleThemeToggle}
+                className="px-3 py-1.5 rounded-md bg-mac-elevated hover:bg-mac-hover text-mac-text-secondary text-[12px] transition-colors"
+                aria-label="切换主题"
+                title="切换主题"
+              >
+                切换
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* 分隔线 */}
+        <div className="border-t border-mac-border" />
+
         {/* 快捷键唤醒 */}
         <div>
           <div className="flex items-center gap-2 mb-2">
@@ -219,6 +325,16 @@ export default function SettingsPanel({ currentHotkey, alwaysOnTop, onHotkeyChan
             <span className={`${alwaysOnTop ? 'text-mac-green' : 'text-mac-text-tertiary'}`}>
               {alwaysOnTop ? '已开启' : '已关闭'}
             </span>
+          </div>
+          <div className="flex items-center justify-between text-[11px] mt-1.5">
+            <span className="text-mac-text-tertiary">开机自启</span>
+            <span className={`${autoLaunch ? 'text-mac-green' : 'text-mac-text-tertiary'}`}>
+              {autoLaunch ? '已开启' : '已关闭'}
+            </span>
+          </div>
+          <div className="flex items-center justify-between text-[11px] mt-1.5">
+            <span className="text-mac-text-tertiary">透明度</span>
+            <span className="text-mac-text-tertiary">{Math.round(opacity * 100)}%</span>
           </div>
         </div>
       </div>

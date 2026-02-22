@@ -14,6 +14,8 @@ export default function App() {
   const [tabs, setTabs] = useState<FolderTab[]>([])
   const [activeTabIndex, setActiveTabIndex] = useState(0)
   const [alwaysOnTop, setAlwaysOnTop] = useState(true)
+  const [autoLaunch, setAutoLaunch] = useState(false)
+  const [opacity, setOpacity] = useState(0.95)
   const [theme, setTheme] = useState<'light' | 'dark'>('light')
   const [toastMessage, setToastMessage] = useState('')
   const [toastVisible, setToastVisible] = useState(false)
@@ -45,6 +47,8 @@ export default function App() {
     async function init() {
       const settings = await window.electronAPI.getSettings()
       setAlwaysOnTop(settings.alwaysOnTop)
+      setAutoLaunch(settings.autoLaunch)
+      setOpacity(settings.opacity)
       setTheme(settings.theme || 'light')
       setHotkey(settings.hotkey || '')
 
@@ -80,6 +84,26 @@ export default function App() {
       if (data.alwaysOnTop !== undefined) {
         setAlwaysOnTop(data.alwaysOnTop)
       }
+      if (data.autoLaunch !== undefined) {
+        setAutoLaunch(data.autoLaunch)
+      }
+      if (data.opacity !== undefined) {
+        setOpacity(data.opacity)
+      }
+      if (data.theme !== undefined) {
+        setTheme(data.theme)
+      }
+      if (data.hotkey !== undefined) {
+        setHotkey(data.hotkey)
+      }
+    })
+    return () => unsubscribe()
+  }, [])
+
+  /** 监听主进程的“打开设置”事件（托盘菜单） */
+  useEffect(() => {
+    const unsubscribe = window.electronAPI.onOpenSettings(() => {
+      setViewMode('settings')
     })
     return () => unsubscribe()
   }, [])
@@ -138,9 +162,13 @@ export default function App() {
   /** 收起面板（带延迟，防止鼠标移动过程中误收起） */
   const handleCollapse = useCallback(() => {
     if (isInteracting.current) return
-    collapseTimer.current = setTimeout(() => {
-      setViewMode('icon')
-    }, 400)
+    if (collapseTimer.current) {
+      clearTimeout(collapseTimer.current)
+      collapseTimer.current = null
+    }
+
+    /** 需求：移出界面立即隐藏 */
+    setViewMode('icon')
   }, [])
 
   /** 鼠标进入展开区域时取消收起 */
@@ -259,6 +287,27 @@ export default function App() {
     window.electronAPI.setTheme(next)
   }, [theme])
 
+  const handleThemeChange = useCallback((next: 'light' | 'dark') => {
+    setTheme(next)
+    window.electronAPI.setTheme(next)
+  }, [])
+
+  const handleAlwaysOnTopChange = useCallback(async (enable: boolean) => {
+    const value = await window.electronAPI.setAlwaysOnTop(enable)
+    setAlwaysOnTop(value)
+  }, [])
+
+  const handleAutoLaunchChange = useCallback(async (enable: boolean) => {
+    const value = await window.electronAPI.setAutoLaunch(enable)
+    setAutoLaunch(value)
+    showToast(value ? '已开启开机自启' : '已关闭开机自启')
+  }, [showToast])
+
+  const handleOpacityChange = useCallback(async (nextOpacity: number) => {
+    const value = await window.electronAPI.setOpacity(nextOpacity)
+    setOpacity(value)
+  }, [])
+
   const currentTab = tabs[activeTabIndex] || null
   const totalFiles = tabs.reduce((sum, tab) => sum + tab.files.filter(f => !f.isDirectory).length, 0)
 
@@ -284,7 +333,14 @@ export default function App() {
         <SettingsPanel
           currentHotkey={hotkey}
           alwaysOnTop={alwaysOnTop}
+          autoLaunch={autoLaunch}
+          opacity={opacity}
+          theme={theme}
           onHotkeyChange={handleHotkeyChange}
+          onAlwaysOnTopChange={handleAlwaysOnTopChange}
+          onAutoLaunchChange={handleAutoLaunchChange}
+          onOpacityChange={handleOpacityChange}
+          onThemeChange={handleThemeChange}
           onClose={handleCloseSettings}
         />
         <Toast message={toastMessage} visible={toastVisible} />
@@ -304,6 +360,7 @@ export default function App() {
         theme={theme}
         onTogglePin={handleTogglePin}
         onToggleTheme={handleToggleTheme}
+        onOpenSettings={handleOpenSettings}
         onMinimize={() => setViewMode('icon')}
         onClose={() => window.electronAPI.windowClose()}
       />

@@ -47,6 +47,10 @@ export interface ElectronAPI {
   setTheme: (theme: 'light' | 'dark') => Promise<void>
   setHotkey: (hotkey: string) => Promise<boolean>
   setWindowMode: (mode: 'icon' | 'expanded') => Promise<void>
+  setAlwaysOnTop: (enable: boolean) => Promise<boolean>
+  setAutoLaunch: (enable: boolean) => Promise<boolean>
+  setOpacity: (opacity: number) => Promise<number>
+  onOpenSettings: (callback: () => void) => () => void
   onToggleExpand: (callback: () => void) => () => void
   onFolderUpdated: (callback: (data: { folderPath: string; files: FileInfo[] }) => void) => () => void
   onSettingsChanged: (callback: (data: any) => void) => () => void

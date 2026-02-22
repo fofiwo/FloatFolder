@@ -90,6 +90,18 @@ export default function FloatingIcon({ onExpand, onOpenSettings, fileCount, fold
               WebkitMaskImage: 'radial-gradient(circle at 50% 45%, black 55%, transparent 80%)',
             }}
           >
+            {/* 内部流光：旋转的彩色能量层（更像 Siri 的“活体”效果） */}
+            <div
+              className="siri-flow absolute inset-0"
+              style={{
+                background:
+                  'conic-gradient(from 90deg, rgba(255,255,255,0) 0deg, rgba(255,255,255,0.0) 40deg, rgba(255,255,255,0.18) 70deg, rgba(255,255,255,0) 110deg, rgba(255,255,255,0.0) 180deg, rgba(255,255,255,0.14) 220deg, rgba(255,255,255,0) 280deg, rgba(255,255,255,0) 360deg)',
+                mixBlendMode: 'screen',
+                opacity: 0.55,
+                filter: 'blur(0.5px)',
+              }}
+            />
+
             <div
               className="siri-sheen absolute -inset-y-10 -left-1/2 w-[140%]"
               style={{
