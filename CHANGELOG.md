@@ -1,5 +1,10 @@
 # 更新日志
 
+## [1.8.5] - 2026-02-22
+
+### Fixed（fix）
+- 修复悬浮球展开界面无法点击任何文件/按钮的问题：setWindowMode('expanded') 开头添加 show()/focus() 并提前恢复 setIgnoreMouseEvents(false)
+
 ## [1.8.4] - 2026-02-22
 
 ### Fixed（fix）

@@ -372,7 +372,13 @@ function setWindowMode(mode: 'icon' | 'expanded') {
 
     applyIconVisibility()
   } else {
-    /** 切换到展开模式：恢复保存的窗口尺寸 */
+    /** 切换到展开模式：确保窗口可见并可交互 */
+    mainWindow.show()
+    mainWindow.focus()
+    /** 必须先恢复鼠标事件，再进行其他窗口操作 */
+    mainWindow.setIgnoreMouseEvents(false)
+
+    /** 恢复保存的窗口尺寸 */
     const bounds = store.get('windowBounds') as { x: number; y: number; width: number; height: number }
     const [x, y] = mainWindow.getPosition()
     mainWindow.setHasShadow(true)
@@ -384,9 +390,6 @@ function setWindowMode(mode: 'icon' | 'expanded') {
     /** 展开模式遵循用户的置顶设置 */
     const alwaysOnTop = store.get('alwaysOnTop') as boolean
     mainWindow.setAlwaysOnTop(alwaysOnTop)
-
-    /** 展开模式必须可交互 */
-    mainWindow.setIgnoreMouseEvents(false)
 
     const opacity = store.get('opacity') as number
     if (typeof opacity === 'number') {
