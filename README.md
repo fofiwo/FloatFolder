@@ -12,6 +12,10 @@
 [![TailwindCSS](https://img.shields.io/badge/Tailwind-3-06b6d4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
+<br>
+
+<img src="docs/screenshots/dark-mode.png" width="380" alt="暗色模式">&nbsp;&nbsp;<img src="docs/screenshots/light-mode.png" width="380" alt="亮色模式">
+
 </div>
 
 ---
