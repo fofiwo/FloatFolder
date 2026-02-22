@@ -1,7 +1,7 @@
 {
   "name": "float-folder",
   "version": "1.0.0",
-  "description": "FloatFolder - 轻量级桌面悬浮文件夹工具，一键访问常用文件，拖拽即用，实时同步",
+  "description": "FloatFolder - \u684c\u9762\u56fe\u7247\u7d20\u6750\u5feb\u901f\u62d6\u62fd\u5de5\u5177\uff0c\u622a\u56fe/\u8bbe\u8ba1\u7a3f/\u7d20\u6750\u56fe\u60ac\u6d6e\u5728\u684c\u9762\uff0c\u62d6\u62fd\u5373\u7528",
   "author": "FloatFolder",
   "license": "MIT",
   "homepage": "https://github.com/floatfolder/float-folder#readme",
