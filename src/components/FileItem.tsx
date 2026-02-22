@@ -4,7 +4,8 @@ import { getFileIcon, formatFileSize, formatTime, isImageFile } from '../lib/uti
 
 interface FileItemProps {
   file: FileInfo
-  onClick: () => void
+  isSelected: boolean
+  onClick: (e: React.MouseEvent) => void
   onDoubleClick: () => void
   onContextMenu: (e: React.MouseEvent) => void
   onDragStart: (e: React.DragEvent) => void
@@ -14,6 +15,7 @@ interface FileItemProps {
 
 export default memo(function FileItem({
   file,
+  isSelected,
   onClick,
   onDoubleClick,
   onContextMenu,
@@ -49,7 +51,7 @@ export default memo(function FileItem({
   return (
     <div
       ref={containerRef}
-      className="file-row flex items-center gap-3 px-3 py-[7px] mx-1 cursor-pointer group"
+      className={`file-row flex items-center gap-3 px-3 py-[7px] mx-1 cursor-pointer group ${isSelected ? 'file-item-selected' : ''}`}
       onClick={onClick}
       onDoubleClick={onDoubleClick}
       onContextMenu={onContextMenu}
@@ -57,7 +59,6 @@ export default memo(function FileItem({
       onDragStart={onDragStart}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      title={`${file.name}\n大小: ${formatFileSize(file.size)}\n修改时间: ${formatTime(file.modifiedTime)}\n\n单击复制 | 双击打开 | 拖拽移动`}
     >
       {/* 文件图标/缩略图 */}
       {isImage && thumbnail ? (
