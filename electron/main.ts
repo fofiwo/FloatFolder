@@ -320,7 +320,42 @@ function createWindow() {
 /** 切换窗口模式（图标/展开） */
 function setWindowMode(mode: 'icon' | 'expanded') {
   if (!mainWindow || mainWindow.isDestroyed()) return
-  if (mode === currentMode) return
+  /**
+   * 重要：即使 mode 未变化，也要确保窗口处于正确的“可交互”状态。
+   * 线上出现过 ignoreMouseEvents 残留导致按钮点击无响应的情况（看起来像 UI 卡死，实际事件被穿透/忽略）。
+   * 这里做成幂等：同模式重复调用仅修正关键窗口属性，不重复覆盖用户尺寸。
+   */
+  if (mode === currentMode) {
+    if (mode === 'icon') {
+      mainWindow.setResizable(false)
+      mainWindow.setMinimumSize(0, 0)
+      mainWindow.setSkipTaskbar(true)
+      mainWindow.setHasShadow(false)
+      mainWindow.setAlwaysOnTop(true, 'floating')
+      applyIconVisibility()
+      return
+    }
+
+    /** expanded */
+    mainWindow.setSkipTaskbar(false)
+    mainWindow.setHasShadow(true)
+    mainWindow.setMinimumSize(300, 350)
+    mainWindow.setResizable(true)
+
+    /** 展开模式必须可交互 */
+    mainWindow.setIgnoreMouseEvents(false)
+
+    /** 展开模式遵循用户的置顶设置 */
+    const alwaysOnTop = store.get('alwaysOnTop') as boolean
+    mainWindow.setAlwaysOnTop(alwaysOnTop)
+
+    /** 应用透明度（用户设置） */
+    const opacity = store.get('opacity') as number
+    if (typeof opacity === 'number') {
+      mainWindow.setOpacity(Math.min(1, Math.max(0.4, opacity)))
+    }
+    return
+  }
 
   currentMode = mode
 

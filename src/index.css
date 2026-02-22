@@ -128,6 +128,7 @@ html.icon-mode #root {
 
 /** macOS 风格红绿灯按钮 */
 .traffic-btn {
+  -webkit-app-region: no-drag;
   width: 12px;
   height: 12px;
   border-radius: 50%;

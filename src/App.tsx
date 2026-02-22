@@ -29,6 +29,9 @@ export default function App() {
   const expandLockTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   /** 记录展开来源：hotkey 模式不因鼠标移出而收起，orb 模式鼠标移出自动收起 */
   const expandSource = useRef<'hotkey' | 'orb'>('orb')
+  /** 用 ref 追踪最新 viewMode，避免 mouseleave 闭包读到旧值 */
+  const viewModeRef = useRef<ViewMode>(viewMode)
+  viewModeRef.current = viewMode
 
   /** 应用主题到 html 元素 */
   useEffect(() => {
@@ -196,11 +199,12 @@ export default function App() {
 
   /** 鼠标离开展开区域时触发收起（仅悬浮球模式） */
   const handleExpandedMouseLeave = useCallback(() => {
-    if (viewMode === 'settings') return
+    /** 使用 ref 读取最新值，避免异步 mouseleave 事件闭包捕获旧 viewMode */
+    if (viewModeRef.current === 'settings') return
     /** 快捷键打开的面板不因鼠标移出而收起，只能通过快捷键关闭 */
     if (expandSource.current === 'hotkey') return
     handleCollapse()
-  }, [viewMode, handleCollapse])
+  }, [handleCollapse])
 
   /** 打开设置 */
   const handleOpenSettings = useCallback(() => {
@@ -342,12 +346,15 @@ export default function App() {
           viewMode === 'icon' ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
       >
-        <FloatingIcon
-          onExpand={handleExpand}
-          onOpenSettings={handleOpenSettings}
-          fileCount={totalFiles}
-          folderCount={tabs.length}
-        />
+        {/* 有快捷键且未勾选「显示悬浮图标」时不渲染 orb，避免快捷键切换时闪现 */}
+        {(!hotkey || showFloatingIconWithHotkey) && (
+          <FloatingIcon
+            onExpand={handleExpand}
+            onOpenSettings={handleOpenSettings}
+            fileCount={totalFiles}
+            folderCount={tabs.length}
+          />
+        )}
       </div>
 
       {/* expanded layer */}
