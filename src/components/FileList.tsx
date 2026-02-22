@@ -33,6 +33,8 @@ export default memo(function FileList({ files, folderPath, showToast }: FileList
   const isDraggingRef = useRef(false)
   const previewTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const ctrlPressed = useRef(false)
+  const shiftPressed = useRef(false)
+  const lastClickedIndex = useRef<number>(-1)
 
   /** 文件路径 -> FileInfo 映射，用于 data-path 事件委托模式 */
   const fileMap = useMemo(() => {
@@ -60,10 +62,23 @@ export default memo(function FileList({ files, folderPath, showToast }: FileList
         }
         setPreviewFile(null)
       }
+      if (e.key === 'Shift' && !shiftPressed.current) {
+        shiftPressed.current = true
+        setHoveredFile(null)
+        previewFileRef.current = null
+        if (previewTimer.current) {
+          clearTimeout(previewTimer.current)
+          previewTimer.current = null
+        }
+        setPreviewFile(null)
+      }
     }
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.key === 'Control') {
         ctrlPressed.current = false
+      }
+      if (e.key === 'Shift') {
+        shiftPressed.current = false
       }
     }
     window.addEventListener('keydown', handleKeyDown)
@@ -133,7 +148,25 @@ export default memo(function FileList({ files, folderPath, showToast }: FileList
       previewFileRef.current = null
       setPreviewFile(null)
 
-      if (e.ctrlKey || e.metaKey) {
+      const currentIndex = sortedAndFilteredFiles.findIndex((f) => f.path === file.path)
+
+      if (e.shiftKey && lastClickedIndex.current >= 0) {
+        /** Shift+单击：范围选择 */
+        const start = Math.min(lastClickedIndex.current, currentIndex)
+        const end = Math.max(lastClickedIndex.current, currentIndex)
+        const rangePaths = sortedAndFilteredFiles.slice(start, end + 1).map((f) => f.path)
+        if (e.ctrlKey || e.metaKey) {
+          /** Ctrl+Shift：追加范围到现有选择 */
+          setSelectedPaths((prev) => {
+            const next = new Set(prev)
+            rangePaths.forEach((p) => next.add(p))
+            return next
+          })
+        } else {
+          /** 纯 Shift：替换为范围选择 */
+          setSelectedPaths(new Set(rangePaths))
+        }
+      } else if (e.ctrlKey || e.metaKey) {
         /** Ctrl+单击：切换多选 */
         setSelectedPaths((prev) => {
           const next = new Set(prev)
@@ -144,15 +177,17 @@ export default memo(function FileList({ files, folderPath, showToast }: FileList
           }
           return next
         })
+        lastClickedIndex.current = currentIndex
       } else {
         /** 普通单击：选中并复制 */
         setSelectedPaths(new Set([file.path]))
+        lastClickedIndex.current = currentIndex
         window.electronAPI.copyFile(file.path).then((success) => {
           showToast(success ? `已复制\n${file.name}` : '复制失败')
         })
       }
     },
-    [showToast]
+    [showToast, sortedAndFilteredFiles]
   )
 
   /** mousedown 检测拖拽手势，超过阈值后调用 Electron 原生拖拽 */
