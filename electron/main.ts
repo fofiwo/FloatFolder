@@ -302,7 +302,7 @@ ipcMain.on('ondragstart', (event, filePaths: string | string[]) => {
     })
   } else {
     event.sender.startDrag({
-      file: '',
+      file: paths[0],
       files: paths,
       icon
     })

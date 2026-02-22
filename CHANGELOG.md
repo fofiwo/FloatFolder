@@ -1,5 +1,26 @@
 # 更新日志
 
+## [1.4.0] - 2026-02-22
+
+### Changed（refactor）
+- 全面重构 UI 为 Apple/macOS 暗色风格
+- TitleBar 改用 macOS 红绿灯按钮（红关/黄最小化/绿置顶），居中标题
+- TabBar 改用 pill 标签样式，活跃标签带高亮背景和阴影
+- FileItem 改为双行布局（名称+大小），32px 圆角图标容器
+- FileList 搜索栏改为 Spotlight 风格，底部状态栏显示文件夹名称
+- ContextMenu 改为 macOS 右键菜单风格，hover 蓝色高亮，快捷键提示
+- Preview 改为 Quick Look 风格弹出
+- Toast 添加绿色勾选图标，毛玻璃背景
+- EmptyState 改为大圆角图标容器 + 蓝色实心按钮
+- 全局图标放大至 18px，描边改为 1.8px，文件夹图标用 macOS 蓝色
+- 配色系统改为 macOS 暗色设计规范（#1e1e1e 背景、#2a2a2c 表面、#0a84ff 强调色）
+- 字体改为 Apple 系统字体栈（SF Pro Display/Text）
+- 滚动条改为 macOS 风格（圆角、半透明）
+
+### Fixed（fix）
+- 修复 Vite dev server IPv6/IPv4 不匹配导致 Electron 连接失败的问题（强制 127.0.0.1 监听）
+- 修复透明窗口在 Windows 上不显示内容的问题
+
 ## [1.3.0] - 2026-02-22
 
 ### Added（feat）
