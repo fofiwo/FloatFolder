@@ -27,6 +27,8 @@ export default function App() {
   const collapseTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isInteracting = useRef(false)
   const expandLockTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  /** 记录展开来源：hotkey 模式不因鼠标移出而收起，orb 模式鼠标移出自动收起 */
+  const expandSource = useRef<'hotkey' | 'orb'>('orb')
 
   /** 应用主题到 html 元素 */
   useEffect(() => {
@@ -124,6 +126,7 @@ export default function App() {
       if (data?.source === 'hotkey') {
         setIsInstantLayerSwitch(true)
         requestAnimationFrame(() => setIsInstantLayerSwitch(false))
+        expandSource.current = 'hotkey'
       }
 
       setViewMode(data?.mode === 'expanded' ? 'expanded' : 'icon')
@@ -150,7 +153,7 @@ export default function App() {
     }, 2000)
   }, [])
 
-  /** 展开面板 */
+  /** 展开面板（悬浮球触发） */
   const handleExpand = useCallback(() => {
     if (collapseTimer.current) {
       clearTimeout(collapseTimer.current)
@@ -158,7 +161,7 @@ export default function App() {
     }
 
     /**
-     * 悬停展开时窗口会立刻 resize，个别系统上会产生“抖动/不跟手”体感。
+     * 悬停展开时窗口会立刻 resize，个别系统上会产生"抖动/不跟手"体感。
      * 这里给一个很短的交互锁，避免刚展开就被收起逻辑抢占。
      */
     isInteracting.current = true
@@ -167,6 +170,7 @@ export default function App() {
       isInteracting.current = false
     }, 250)
 
+    expandSource.current = 'orb'
     setViewMode('expanded')
   }, [])
 
@@ -190,9 +194,11 @@ export default function App() {
     }
   }, [])
 
-  /** 鼠标离开展开区域时触发收起 */
+  /** 鼠标离开展开区域时触发收起（仅悬浮球模式） */
   const handleExpandedMouseLeave = useCallback(() => {
     if (viewMode === 'settings') return
+    /** 快捷键打开的面板不因鼠标移出而收起，只能通过快捷键关闭 */
+    if (expandSource.current === 'hotkey') return
     handleCollapse()
   }, [viewMode, handleCollapse])
 
