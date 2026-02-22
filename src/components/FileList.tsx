@@ -45,6 +45,9 @@ export default memo(function FileList({ files, folderPath, showToast }: FileList
   const rafId = useRef<number>(0)
   const ITEM_HEIGHT = 46
   const OVERSCAN = 8
+  const GRID_COLS = 3
+  const GRID_ROW_HEIGHT = 152
+  const GRID_OVERSCAN_ROWS = 3
 
   /** Tab 切换时重置滚动和选择状态 */
   useEffect(() => {
@@ -56,6 +59,14 @@ export default memo(function FileList({ files, folderPath, showToast }: FileList
     setSearchQuery('')
     lastClickedIndex.current = -1
   }, [folderPath])
+
+  /** 视图模式切换时重置滚动位置 */
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0
+    }
+    setScrollTop(0)
+  }, [viewMode])
 
   /** 监听滚动容器尺寸变化 */
   useEffect(() => {
@@ -147,12 +158,22 @@ export default memo(function FileList({ files, folderPath, showToast }: FileList
     return filtered
   }, [files, searchQuery, sortMode])
 
-  /** 虚拟滚动：计算可见范围（列表视图使用） */
-  const startIdx = Math.max(0, Math.floor(scrollTop / ITEM_HEIGHT) - OVERSCAN)
-  const endIdx = Math.min(sortedAndFilteredFiles.length, Math.ceil((scrollTop + viewportHeight) / ITEM_HEIGHT) + OVERSCAN)
-  const visibleFiles = sortedAndFilteredFiles.slice(startIdx, endIdx)
-  const topPadding = startIdx * ITEM_HEIGHT
-  const bottomPadding = Math.max(0, (sortedAndFilteredFiles.length - endIdx) * ITEM_HEIGHT)
+  /** 虚拟滚动：计算可见范围 */
+  const listStartIdx = Math.max(0, Math.floor(scrollTop / ITEM_HEIGHT) - OVERSCAN)
+  const listEndIdx = Math.min(sortedAndFilteredFiles.length, Math.ceil((scrollTop + viewportHeight) / ITEM_HEIGHT) + OVERSCAN)
+  const listVisibleFiles = sortedAndFilteredFiles.slice(listStartIdx, listEndIdx)
+  const listTopPad = listStartIdx * ITEM_HEIGHT
+  const listBottomPad = Math.max(0, (sortedAndFilteredFiles.length - listEndIdx) * ITEM_HEIGHT)
+
+  /** 虚拟滚动：网格视图按行计算 */
+  const gridTotalRows = Math.ceil(sortedAndFilteredFiles.length / GRID_COLS)
+  const gridStartRow = Math.max(0, Math.floor(scrollTop / GRID_ROW_HEIGHT) - GRID_OVERSCAN_ROWS)
+  const gridEndRow = Math.min(gridTotalRows, Math.ceil((scrollTop + viewportHeight) / GRID_ROW_HEIGHT) + GRID_OVERSCAN_ROWS)
+  const gridStartIdx = gridStartRow * GRID_COLS
+  const gridEndIdx = Math.min(sortedAndFilteredFiles.length, gridEndRow * GRID_COLS)
+  const gridVisibleFiles = sortedAndFilteredFiles.slice(gridStartIdx, gridEndIdx)
+  const gridTopPad = gridStartRow * GRID_ROW_HEIGHT
+  const gridBottomPad = Math.max(0, (gridTotalRows - gridEndRow) * GRID_ROW_HEIGHT)
 
   const handleContextMenu = useCallback((e: React.MouseEvent, file: FileInfo) => {
     e.preventDefault()
@@ -436,8 +457,8 @@ export default memo(function FileList({ files, folderPath, showToast }: FileList
             </span>
           </div>
         ) : viewMode === 'list' ? (
-          <div style={{ paddingTop: topPadding, paddingBottom: bottomPadding }}>
-            {visibleFiles.map((file) => (
+          <div style={{ paddingTop: listTopPad, paddingBottom: listBottomPad }}>
+            {listVisibleFiles.map((file) => (
               <FileItem
                 key={file.path}
                 file={file}
@@ -453,21 +474,23 @@ export default memo(function FileList({ files, folderPath, showToast }: FileList
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-1">
-            {sortedAndFilteredFiles.map((file) => (
-              <FileCard
-                key={file.path}
-                file={file}
-                isSelected={selectedPaths.has(file.path)}
-                onClick={(e: React.MouseEvent) => handleClick(e, file)}
-                onDoubleClick={() => handleOpenFile(file)}
-                onContextMenu={(e: React.MouseEvent) => handleContextMenu(e, file)}
-                onMouseDown={(e: React.MouseEvent) => handleMouseDown(e, file)}
-                onMouseEnter={(e: React.MouseEvent) => handleMouseEnter(e, file)}
-                onMouseMove={handleMouseMove}
-                onMouseLeave={handleMouseLeave}
-              />
-            ))}
+          <div style={{ paddingTop: gridTopPad, paddingBottom: gridBottomPad }}>
+            <div className="grid grid-cols-3 gap-1">
+              {gridVisibleFiles.map((file) => (
+                <FileCard
+                  key={file.path}
+                  file={file}
+                  isSelected={selectedPaths.has(file.path)}
+                  onClick={(e: React.MouseEvent) => handleClick(e, file)}
+                  onDoubleClick={() => handleOpenFile(file)}
+                  onContextMenu={(e: React.MouseEvent) => handleContextMenu(e, file)}
+                  onMouseDown={(e: React.MouseEvent) => handleMouseDown(e, file)}
+                  onMouseEnter={(e: React.MouseEvent) => handleMouseEnter(e, file)}
+                  onMouseMove={handleMouseMove}
+                  onMouseLeave={handleMouseLeave}
+                />
+              ))}
+            </div>
           </div>
         )}
       </div>
