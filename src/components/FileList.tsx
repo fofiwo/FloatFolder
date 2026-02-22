@@ -197,6 +197,7 @@ export default function FileList({ files, folderPath, showToast }: FileListProps
               onContextMenu={(e) => handleContextMenu(e, file)}
               onDragStart={(e) => handleDragStart(e, file)}
               onMouseEnter={(e) => handleMouseEnter(e, file)}
+              onMouseMove={handleMouseMove}
               onMouseLeave={handleMouseLeave}
             />
           ))

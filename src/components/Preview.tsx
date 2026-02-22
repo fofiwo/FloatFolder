@@ -22,7 +22,7 @@ export default function Preview({ file, x, y }: PreviewProps) {
 
   return (
     <div
-      className="fixed z-50 rounded-mac-lg overflow-hidden shadow-2xl pop-in"
+      className="fixed z-50 rounded-mac-lg overflow-hidden shadow-2xl pointer-events-none"
       style={{
         left: Math.min(x, window.innerWidth - 240),
         top: Math.min(y, window.innerHeight - 240),
