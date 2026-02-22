@@ -1,5 +1,10 @@
 # 更新日志
 
+## [2.0.2] - 2026-02-22
+
+### Fixed（fix）
+- 修复标题栏红绿灯按钮（尤其绿色置顶按钮）无法点击的问题：重置 button 默认样式（border/outline/padding）、添加 cursor:pointer、使用伪元素扩大点击区域至 28px
+
 ## [2.0.1] - 2026-02-22
 
 ### Fixed（fix）
