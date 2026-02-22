@@ -53,6 +53,14 @@ function clamp(value: number, min: number, max: number) {
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL
 const isDev = !!VITE_DEV_SERVER_URL
 
+/** 解析图标路径：开发环境用 public/，生产环境用 dist/（Vite 会将 public/ 复制到 dist/） */
+function resolveIcon(iconName: string): string {
+  if (isDev) {
+    return path.join(__dirname, '../public', iconName)
+  }
+  return path.join(__dirname, '../dist', iconName)
+}
+
 function createWindow() {
   const bounds = store.get('windowBounds') as { x: number; y: number; width: number; height: number }
   const opacity = store.get('opacity') as number
@@ -84,7 +92,7 @@ function createWindow() {
     skipTaskbar: false,
     hasShadow: true,
     roundedCorners: true,
-    icon: path.join(__dirname, '../public/icon.png'),
+    icon: resolveIcon(process.platform === 'win32' ? 'icon.ico' : 'icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -281,14 +289,14 @@ function saveWindowBounds() {
 
 /** 创建系统托盘 */
 function createTray() {
-  const iconPath = path.join(__dirname, '../public/icon-16.png')
+  const iconPath = resolveIcon('icon-16.png')
   let trayIcon: Electron.NativeImage
 
   if (fs.existsSync(iconPath)) {
     trayIcon = nativeImage.createFromPath(iconPath)
   } else {
     /** 备用：尝试加载大图标并缩放 */
-    const fallback = path.join(__dirname, '../public/icon.png')
+    const fallback = resolveIcon('icon.png')
     trayIcon = fs.existsSync(fallback)
       ? nativeImage.createFromPath(fallback).resize({ width: 16, height: 16 })
       : nativeImage.createEmpty()
