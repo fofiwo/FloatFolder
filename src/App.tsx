@@ -21,6 +21,7 @@ export default function App() {
   const [toastVisible, setToastVisible] = useState(false)
   const [viewMode, setViewMode] = useState<ViewMode>('icon')
   const [hotkey, setHotkey] = useState('')
+  const [showFloatingIconWithHotkey, setShowFloatingIconWithHotkey] = useState(false)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const collapseTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isInteracting = useRef(false)
@@ -51,6 +52,7 @@ export default function App() {
       setOpacity(settings.opacity)
       setTheme(settings.theme || 'light')
       setHotkey(settings.hotkey || '')
+      setShowFloatingIconWithHotkey(!!settings.showFloatingIconWithHotkey)
 
       const folders = await window.electronAPI.getFolders()
       if (folders.length > 0) {
@@ -96,6 +98,9 @@ export default function App() {
       if (data.hotkey !== undefined) {
         setHotkey(data.hotkey)
       }
+      if (data.showFloatingIconWithHotkey !== undefined) {
+        setShowFloatingIconWithHotkey(!!data.showFloatingIconWithHotkey)
+      }
     })
     return () => unsubscribe()
   }, [])
@@ -110,12 +115,8 @@ export default function App() {
 
   /** 监听主进程的快捷键唤醒事件 */
   useEffect(() => {
-    const unsubscribe = window.electronAPI.onToggleExpand(() => {
-      setViewMode((prev) => {
-        const next = prev === 'icon' ? 'expanded' : 'icon'
-        window.electronAPI.setWindowMode(next)
-        return next
-      })
+    const unsubscribe = window.electronAPI.onToggleExpand((data) => {
+      setViewMode(data.mode === 'expanded' ? 'expanded' : 'icon')
     })
     return () => unsubscribe()
   }, [])
@@ -308,19 +309,32 @@ export default function App() {
     setOpacity(value)
   }, [])
 
+  const handleShowFloatingIconWithHotkeyChange = useCallback(async (enable: boolean) => {
+    const value = await window.electronAPI.setShowFloatingIconWithHotkey(enable)
+    setShowFloatingIconWithHotkey(value)
+    showToast(value ? '已开启悬浮图标' : '已隐藏悬浮图标')
+  }, [showToast])
+
   const currentTab = tabs[activeTabIndex] || null
   const totalFiles = tabs.reduce((sum, tab) => sum + tab.files.filter(f => !f.isDirectory).length, 0)
+
+  const shouldRenderFloatingIcon = !hotkey || showFloatingIconWithHotkey
 
   /** 图标模式 */
   if (viewMode === 'icon') {
     return (
       <div className="w-full h-full overflow-hidden bg-transparent">
-        <FloatingIcon
-          onExpand={handleExpand}
-          onOpenSettings={handleOpenSettings}
-          fileCount={totalFiles}
-          folderCount={tabs.length}
-        />
+        {shouldRenderFloatingIcon ? (
+          <FloatingIcon
+            onExpand={handleExpand}
+            onOpenSettings={handleOpenSettings}
+            fileCount={totalFiles}
+            folderCount={tabs.length}
+          />
+        ) : (
+          /** 快捷键模式默认隐藏悬浮图标：保留透明窗口用于全局快捷键唤醒 */
+          <div className="w-full h-full" />
+        )}
         <Toast message={toastMessage} visible={toastVisible} />
       </div>
     )
@@ -336,11 +350,13 @@ export default function App() {
           autoLaunch={autoLaunch}
           opacity={opacity}
           theme={theme}
+          showFloatingIconWithHotkey={showFloatingIconWithHotkey}
           onHotkeyChange={handleHotkeyChange}
           onAlwaysOnTopChange={handleAlwaysOnTopChange}
           onAutoLaunchChange={handleAutoLaunchChange}
           onOpacityChange={handleOpacityChange}
           onThemeChange={handleThemeChange}
+          onShowFloatingIconWithHotkeyChange={handleShowFloatingIconWithHotkeyChange}
           onClose={handleCloseSettings}
         />
         <Toast message={toastMessage} visible={toastVisible} />

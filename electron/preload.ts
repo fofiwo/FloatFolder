@@ -34,6 +34,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setAlwaysOnTop: (enable: boolean) => ipcRenderer.invoke('set-always-on-top', enable),
   setAutoLaunch: (enable: boolean) => ipcRenderer.invoke('set-auto-launch', enable),
   setOpacity: (opacity: number) => ipcRenderer.invoke('set-opacity', opacity),
+  setShowFloatingIconWithHotkey: (enable: boolean) => ipcRenderer.invoke('set-show-floating-icon-with-hotkey', enable),
+  startIconDrag: (offsetX: number, offsetY: number) => ipcRenderer.invoke('start-icon-drag', offsetX, offsetY),
+  stopIconDrag: () => ipcRenderer.invoke('stop-icon-drag'),
 
   /** 事件监听 */
   onFolderUpdated: (callback: (data: { folderPath: string; files: any[] }) => void) => {
@@ -51,8 +54,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('open-settings', handler)
     return () => ipcRenderer.removeListener('open-settings', handler)
   },
-  onToggleExpand: (callback: () => void) => {
-    const handler = () => callback()
+  onToggleExpand: (callback: (data: any) => void) => {
+    const handler = (_event: any, data: any) => callback(data)
     ipcRenderer.on('toggle-expand', handler)
     return () => ipcRenderer.removeListener('toggle-expand', handler)
   }

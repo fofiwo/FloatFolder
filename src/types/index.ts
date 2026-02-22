@@ -23,6 +23,7 @@ export interface AppSettings {
   activeTab: number
   hotkey: string
   theme: 'light' | 'dark'
+  showFloatingIconWithHotkey: boolean
 }
 
 /** Electron API 类型 */
@@ -50,8 +51,11 @@ export interface ElectronAPI {
   setAlwaysOnTop: (enable: boolean) => Promise<boolean>
   setAutoLaunch: (enable: boolean) => Promise<boolean>
   setOpacity: (opacity: number) => Promise<number>
+  setShowFloatingIconWithHotkey: (enable: boolean) => Promise<boolean>
+  startIconDrag: (offsetX: number, offsetY: number) => Promise<void>
+  stopIconDrag: () => Promise<void>
   onOpenSettings: (callback: () => void) => () => void
-  onToggleExpand: (callback: () => void) => () => void
+  onToggleExpand: (callback: (data: { mode: 'icon' | 'expanded'; source: 'hotkey' }) => void) => () => void
   onFolderUpdated: (callback: (data: { folderPath: string; files: FileInfo[] }) => void) => () => void
   onSettingsChanged: (callback: (data: any) => void) => () => void
 }

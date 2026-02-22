@@ -16,12 +16,19 @@ const store = new Store({
     autoLaunch: false,
     opacity: 0.95,
     theme: 'light' as 'light' | 'dark',
-    hotkey: '' as string
+    hotkey: '' as string,
+
+    /** 当已设置快捷键时：是否仍显示悬浮图标（默认开启，避免“莫名消失”的体感） */
+    showFloatingIconWithHotkey: true,
   }
 })
 
 /** 图标模式窗口尺寸 */
-const ICON_MODE_SIZE = { width: 96, height: 96 }
+/**
+ * icon 窗口需要比 orb 大很多：halo blur 会被窗口边界裁切，形成“方形框”。
+ * 因此这里留出足够安全边界。
+ */
+const ICON_MODE_SIZE = { width: 160, height: 160 }
 let currentMode: 'icon' | 'expanded' = 'icon'
 
 let mainWindow: BrowserWindow | null = null
@@ -30,6 +37,18 @@ let registeredHotkey: string | null = null
 const watchers: Map<string, chokidar.FSWatcher> = new Map()
 
 let iconMoveDebounceTimer: ReturnType<typeof setTimeout> | null = null
+let isDraggingIcon = false
+let iconDragTimer: ReturnType<typeof setInterval> | null = null
+let iconDragOffset: { x: number; y: number } | null = null
+
+function clampToWorkArea(x: number, y: number, width: number, height: number) {
+  const display = screen.getDisplayNearestPoint({ x, y })
+  const workArea = display.workArea
+
+  const nextX = Math.min(Math.max(x, workArea.x), workArea.x + workArea.width - width)
+  const nextY = Math.min(Math.max(y, workArea.y), workArea.y + workArea.height - height)
+  return { x: nextX, y: nextY }
+}
 
 function saveIconPosition() {
   if (!mainWindow || mainWindow.isDestroyed()) return
@@ -64,14 +83,135 @@ function snapIconWindowToEdges() {
   }
 
   if (nextX !== bounds.x || nextY !== bounds.y) {
-    mainWindow.setPosition(nextX, nextY, false)
-    store.set('iconPosition', { x: nextX, y: nextY })
+    const clamped = clampToWorkArea(nextX, nextY, bounds.width, bounds.height)
+    mainWindow.setPosition(clamped.x, clamped.y, false)
+    store.set('iconPosition', { x: clamped.x, y: clamped.y })
   }
 }
 
-function sendSettingsChanged(patch: Partial<{ alwaysOnTop: boolean; autoLaunch: boolean; opacity: number; theme: 'light' | 'dark'; hotkey: string }>) {
+function startIconDrag(offsetX: number, offsetY: number) {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  if (currentMode !== 'icon') return
+
+  isDraggingIcon = true
+  iconDragOffset = { x: offsetX, y: offsetY }
+
+  if (iconDragTimer) clearInterval(iconDragTimer)
+  iconDragTimer = setInterval(() => {
+    if (!mainWindow || mainWindow.isDestroyed() || !iconDragOffset) return
+
+    const cursor = screen.getCursorScreenPoint()
+    const bounds = mainWindow.getBounds()
+    const nextX = cursor.x - iconDragOffset.x
+    const nextY = cursor.y - iconDragOffset.y
+    const clamped = clampToWorkArea(nextX, nextY, bounds.width, bounds.height)
+
+    /** 禁用动画：拖拽需要跟手 */
+    mainWindow.setPosition(clamped.x, clamped.y, false)
+    store.set('iconPosition', { x: clamped.x, y: clamped.y })
+  }, 16)
+}
+
+function stopIconDrag() {
+  isDraggingIcon = false
+  iconDragOffset = null
+
+  if (iconDragTimer) {
+    clearInterval(iconDragTimer)
+    iconDragTimer = null
+  }
+
+  saveIconPosition()
+  snapIconWindowToEdges()
+}
+
+function sendSettingsChanged(
+  patch: Partial<{
+    alwaysOnTop: boolean
+    autoLaunch: boolean
+    opacity: number
+    theme: 'light' | 'dark'
+    hotkey: string
+    showFloatingIconWithHotkey: boolean
+  }>
+) {
   if (!mainWindow || mainWindow.isDestroyed()) return
   mainWindow.webContents.send('settings-changed', patch)
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value))
+}
+
+function shouldShowFloatingIcon(): boolean {
+  const hotkey = (store.get('hotkey') as string) || ''
+  if (!hotkey) return true
+  return store.get('showFloatingIconWithHotkey') as boolean
+}
+
+/** 图标模式下：根据用户设置隐藏/显示悬浮图标（隐藏时忽略鼠标事件，避免“透明窗口挡点”） */
+function applyIconVisibility() {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  if (currentMode !== 'icon') return
+
+  const opacity = store.get('opacity') as number
+  const safeOpacity = typeof opacity === 'number' ? Math.min(1, Math.max(0.4, opacity)) : 0.95
+
+  if (shouldShowFloatingIcon()) {
+    mainWindow.setIgnoreMouseEvents(false)
+    mainWindow.setOpacity(safeOpacity)
+    return
+  }
+
+  /** 0 会导致某些系统下窗口异常，这里用接近 0 的透明度 */
+  mainWindow.setIgnoreMouseEvents(true, { forward: true })
+  mainWindow.setOpacity(0.01)
+}
+
+function positionExpandedWindowNearCursor() {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+
+  const cursor = screen.getCursorScreenPoint()
+  const display = screen.getDisplayNearestPoint(cursor)
+  const workArea = display.workArea
+
+  const saved = store.get('windowBounds') as { width: number; height: number }
+  const width = saved?.width ?? 400
+  const height = saved?.height ?? 500
+
+  const margin = 12
+  const x = clamp(cursor.x - Math.round(width / 2), workArea.x + margin, workArea.x + workArea.width - width - margin)
+  const y = clamp(cursor.y + 18, workArea.y + margin, workArea.y + workArea.height - height - margin)
+
+  /** 禁用窗口动画，减少展开时卡顿 */
+  mainWindow.setBounds({ x, y, width, height }, false)
+}
+
+function toggleExpandFromHotkey() {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+
+  const nextMode: 'icon' | 'expanded' = currentMode === 'icon' ? 'expanded' : 'icon'
+
+  if (nextMode === 'expanded') {
+    mainWindow.show()
+    mainWindow.focus()
+
+    /** 展开时恢复正常交互 */
+    mainWindow.setIgnoreMouseEvents(false)
+
+    const opacity = store.get('opacity') as number
+    if (typeof opacity === 'number') {
+      mainWindow.setOpacity(Math.min(1, Math.max(0.4, opacity)))
+    }
+
+    setWindowMode('expanded')
+    positionExpandedWindowNearCursor()
+  } else {
+    setWindowMode('icon')
+    applyIconVisibility()
+  }
+
+  mainWindow.webContents.send('toggle-expand', { mode: nextMode, source: 'hotkey' })
 }
 
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL
@@ -82,9 +222,16 @@ function createWindow() {
   const iconPosition = store.get('iconPosition') as { x: number; y: number }
   const opacity = store.get('opacity') as number
 
+  const safeIconPos = clampToWorkArea(
+    iconPosition?.x ?? bounds.x,
+    iconPosition?.y ?? bounds.y,
+    ICON_MODE_SIZE.width,
+    ICON_MODE_SIZE.height
+  )
+
   mainWindow = new BrowserWindow({
-    x: iconPosition?.x ?? bounds.x,
-    y: iconPosition?.y ?? bounds.y,
+    x: safeIconPos.x,
+    y: safeIconPos.y,
     width: ICON_MODE_SIZE.width,
     height: ICON_MODE_SIZE.height,
     minWidth: 0,
@@ -116,6 +263,9 @@ function createWindow() {
 
   currentMode = 'icon'
 
+  /** 初始化图标显示策略（快捷键模式可隐藏悬浮图标） */
+  applyIconVisibility()
+
   if (VITE_DEV_SERVER_URL) {
     /** 带重试的加载机制，解决 Vite 未就绪的时序问题 */
     const loadWithRetry = (retries = 20) => {
@@ -139,6 +289,9 @@ function createWindow() {
       saveWindowBounds()
       return
     }
+
+    /** 拖拽中由 setInterval 控制位置，避免 moved 里再触发吸附造成抖动 */
+    if (isDraggingIcon) return
 
     /** 图标模式：持久化位置 + 靠边吸附 */
     saveIconPosition()
@@ -176,12 +329,15 @@ function setWindowMode(mode: 'icon' | 'expanded') {
     const [x, y] = mainWindow.getPosition()
     mainWindow.setResizable(false)
     mainWindow.setMinimumSize(0, 0)
-    mainWindow.setBounds({ x, y, width: ICON_MODE_SIZE.width, height: ICON_MODE_SIZE.height }, true)
+    const clamped = clampToWorkArea(x, y, ICON_MODE_SIZE.width, ICON_MODE_SIZE.height)
+    mainWindow.setBounds({ x: clamped.x, y: clamped.y, width: ICON_MODE_SIZE.width, height: ICON_MODE_SIZE.height }, false)
     mainWindow.setSkipTaskbar(true)
     mainWindow.setHasShadow(false)
 
     /** 图标模式强置顶，避免被遮挡 */
     mainWindow.setAlwaysOnTop(true, 'floating')
+
+    applyIconVisibility()
   } else {
     /** 切换到展开模式：恢复保存的窗口尺寸 */
     const bounds = store.get('windowBounds') as { x: number; y: number; width: number; height: number }
@@ -189,12 +345,20 @@ function setWindowMode(mode: 'icon' | 'expanded') {
     mainWindow.setHasShadow(true)
     mainWindow.setSkipTaskbar(false)
     mainWindow.setMinimumSize(300, 350)
-    mainWindow.setBounds({ x, y, width: bounds.width, height: bounds.height }, true)
+    mainWindow.setBounds({ x, y, width: bounds.width, height: bounds.height }, false)
     mainWindow.setResizable(true)
 
     /** 展开模式遵循用户的置顶设置 */
     const alwaysOnTop = store.get('alwaysOnTop') as boolean
     mainWindow.setAlwaysOnTop(alwaysOnTop)
+
+    /** 展开模式必须可交互 */
+    mainWindow.setIgnoreMouseEvents(false)
+
+    const opacity = store.get('opacity') as number
+    if (typeof opacity === 'number') {
+      mainWindow.setOpacity(Math.min(1, Math.max(0.4, opacity)))
+    }
   }
 }
 
@@ -271,10 +435,7 @@ function registerGlobalHotkey(hotkey: string): boolean {
 
   try {
     const success = globalShortcut.register(hotkey, () => {
-      if (!mainWindow || mainWindow.isDestroyed()) return
-      mainWindow.show()
-      mainWindow.focus()
-      mainWindow.webContents.send('toggle-expand')
+      toggleExpandFromHotkey()
     })
     if (success) {
       registeredHotkey = hotkey
@@ -563,7 +724,8 @@ ipcMain.handle('get-settings', () => {
     opacity: store.get('opacity'),
     activeTab: store.get('activeTab'),
     theme: store.get('theme') || 'light',
-    hotkey: store.get('hotkey') || ''
+    hotkey: store.get('hotkey') || '',
+    showFloatingIconWithHotkey: store.get('showFloatingIconWithHotkey') as boolean,
   }
 })
 
@@ -572,13 +734,32 @@ ipcMain.handle('set-hotkey', (_event, hotkey: string) => {
   const success = registerGlobalHotkey(hotkey)
   if (success) {
     store.set('hotkey', hotkey)
+
+    sendSettingsChanged({ hotkey })
+    applyIconVisibility()
   }
   return success
+})
+
+ipcMain.handle('set-show-floating-icon-with-hotkey', (_event, enable: boolean) => {
+  store.set('showFloatingIconWithHotkey', enable)
+  sendSettingsChanged({ showFloatingIconWithHotkey: enable })
+  applyIconVisibility()
+  return enable
 })
 
 /** 设置窗口模式 */
 ipcMain.handle('set-window-mode', (_event, mode: 'icon' | 'expanded') => {
   setWindowMode(mode)
+})
+
+/** 悬浮球自定义拖拽（允许在球体本身拖动） */
+ipcMain.handle('start-icon-drag', (_event, offsetX: number, offsetY: number) => {
+  startIconDrag(offsetX, offsetY)
+})
+
+ipcMain.handle('stop-icon-drag', () => {
+  stopIconDrag()
 })
 
 /** 设置主题 */
@@ -602,7 +783,13 @@ ipcMain.handle('set-auto-launch', (_event, enable: boolean) => {
 ipcMain.handle('set-opacity', (_event, opacity: number) => {
   const safeOpacity = Math.min(1, Math.max(0.4, opacity))
   store.set('opacity', safeOpacity)
-  mainWindow?.setOpacity(safeOpacity)
+
+  if (currentMode === 'icon' && !shouldShowFloatingIcon()) {
+    mainWindow?.setOpacity(0.01)
+  } else {
+    mainWindow?.setOpacity(safeOpacity)
+  }
+
   sendSettingsChanged({ opacity: safeOpacity })
   return safeOpacity
 })

@@ -6,12 +6,28 @@ interface SettingsPanelProps {
   autoLaunch: boolean
   opacity: number
   theme: 'light' | 'dark'
+  showFloatingIconWithHotkey: boolean
   onHotkeyChange: (hotkey: string) => void
   onAlwaysOnTopChange: (enable: boolean) => void
   onAutoLaunchChange: (enable: boolean) => void
   onOpacityChange: (opacity: number) => void
   onThemeChange: (theme: 'light' | 'dark') => void
+  onShowFloatingIconWithHotkeyChange: (enable: boolean) => void
   onClose: () => void
+}
+
+function Tooltip({ text }: { text: string }) {
+  return (
+    <span className="relative inline-flex items-center group">
+      <span className="w-[14px] h-[14px] rounded-full border border-mac-border text-[10px] leading-[12px] text-mac-text-tertiary flex items-center justify-center">?</span>
+      <span
+        className="pointer-events-none absolute z-10 left-1/2 -translate-x-1/2 top-5 min-w-[220px] max-w-[260px] px-2 py-1 rounded-md text-[11px] text-mac-text bg-[var(--mac-popup-bg)] border border-[var(--mac-popup-border)] shadow-xl opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition-all"
+        style={{ backdropFilter: 'blur(12px)' }}
+      >
+        {text}
+      </span>
+    </span>
+  )
 }
 
 /** Electron 快捷键修饰符映射 */
@@ -66,11 +82,13 @@ export default function SettingsPanel({
   autoLaunch,
   opacity,
   theme,
+  showFloatingIconWithHotkey,
   onHotkeyChange,
   onAlwaysOnTopChange,
   onAutoLaunchChange,
   onOpacityChange,
   onThemeChange,
+  onShowFloatingIconWithHotkeyChange,
   onClose,
 }: SettingsPanelProps) {
   const [isRecording, setIsRecording] = useState(false)
@@ -152,6 +170,29 @@ export default function SettingsPanel({
           </div>
 
           <div className="space-y-3">
+            {/* 快捷键模式显示悬浮图标 */}
+            <div className="flex items-center justify-between rounded-md border border-mac-border px-3 py-2 bg-mac-surface">
+              <div>
+                <div className="flex items-center gap-2 text-[12px] text-mac-text">
+                  <span>快捷键下显示悬浮图标</span>
+                  <Tooltip text={currentHotkey ? '默认关闭：设置快捷键后悬浮图标会自动隐藏，可通过快捷键或托盘唤醒。开启后可同时使用“快捷键 + 悬浮图标”。' : '请先设置全局快捷键。未设置快捷键时悬浮图标始终显示。'} />
+                </div>
+                <div className="text-[11px] text-mac-text-tertiary">仅在已设置快捷键时生效</div>
+              </div>
+              <button
+                onClick={() => {
+                  if (!currentHotkey) return
+                  onShowFloatingIconWithHotkeyChange(!showFloatingIconWithHotkey)
+                }}
+                disabled={!currentHotkey}
+                className={`w-10 h-6 rounded-full p-0.5 transition-colors ${currentHotkey && showFloatingIconWithHotkey ? 'bg-mac-accent' : 'bg-mac-hover'} ${!currentHotkey ? 'opacity-50 cursor-not-allowed' : ''}`}
+                aria-label="切换快捷键下显示悬浮图标"
+                title={currentHotkey ? '切换快捷键下显示悬浮图标' : '请先设置快捷键'}
+              >
+                <div className={`h-5 w-5 rounded-full bg-white transition-transform ${currentHotkey && showFloatingIconWithHotkey ? 'translate-x-4' : 'translate-x-0'}`} />
+              </button>
+            </div>
+
             {/* 置顶 */}
             <div className="flex items-center justify-between rounded-md border border-mac-border px-3 py-2 bg-mac-surface">
               <div>
