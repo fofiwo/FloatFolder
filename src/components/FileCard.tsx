@@ -8,7 +8,10 @@ interface FileCardProps {
   onClick: (e: React.MouseEvent) => void
   onDoubleClick: () => void
   onContextMenu: (e: React.MouseEvent) => void
-  onDragStart: (e: React.DragEvent) => void
+  onMouseDown: (e: React.MouseEvent) => void
+  onMouseEnter: (e: React.MouseEvent) => void
+  onMouseMove: (e: React.MouseEvent) => void
+  onMouseLeave: () => void
 }
 
 export default memo(function FileCard({
@@ -17,7 +20,10 @@ export default memo(function FileCard({
   onClick,
   onDoubleClick,
   onContextMenu,
-  onDragStart
+  onMouseDown,
+  onMouseEnter,
+  onMouseMove,
+  onMouseLeave
 }: FileCardProps) {
   const [thumbnail, setThumbnail] = useState<string | null>(null)
   const cardRef = useRef<HTMLDivElement>(null)
@@ -51,16 +57,18 @@ export default memo(function FileCard({
       onClick={onClick}
       onDoubleClick={onDoubleClick}
       onContextMenu={onContextMenu}
-      draggable
-      onDragStart={onDragStart}
-      title={`${file.name}\n大小: ${formatFileSize(file.size)}\n\nCtrl+单击多选 | 双击打开 | 拖拽移动`}
+      onMouseDown={onMouseDown}
+      onMouseEnter={onMouseEnter}
+      onMouseMove={onMouseMove}
+      onMouseLeave={onMouseLeave}
+      title={`${file.name}\n${formatFileSize(file.size)}`}
     >
       {/* 缩略图/图标区域 */}
-      <div className="w-full aspect-square rounded-md overflow-hidden bg-white/[0.03] flex items-center justify-center mb-1.5">
+      <div className="w-full aspect-square rounded-md overflow-hidden bg-mac-overlay flex items-center justify-center mb-1.5">
         {isImage && thumbnail ? (
-          <img src={thumbnail} alt="" className="w-full h-full object-cover" />
+          <img src={thumbnail} alt={file.name} className="w-full h-full object-cover" />
         ) : (
-          <div className="text-white/30 scale-[2]">
+          <div className="text-mac-text-tertiary scale-[2]">
             {getFileIcon(file)}
           </div>
         )}
@@ -68,7 +76,7 @@ export default memo(function FileCard({
 
       {/* 文件名 */}
       <div className="w-full text-center px-0.5">
-        <span className="text-[10px] text-white/60 group-hover:text-white/80 leading-tight line-clamp-2 break-all transition-colors">
+        <span className="text-[10px] text-mac-text-secondary group-hover:text-mac-text leading-tight line-clamp-2 break-all transition-colors">
           {file.name}
         </span>
       </div>

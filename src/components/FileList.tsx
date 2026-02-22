@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect, useMemo, memo } from 'react'
 import type { FileInfo } from '../types'
 import { formatFileSize } from '../lib/utils'
 import FileItem from './FileItem'
+import FileCard from './FileCard'
 import ContextMenu from './ContextMenu'
 import Preview from './Preview'
 import type { PreviewHandle } from './Preview'
@@ -27,6 +28,7 @@ export default memo(function FileList({ files, folderPath, showToast }: FileList
   const mousePos = useRef<{ x: number; y: number }>({ x: 0, y: 0 })
   const [searchQuery, setSearchQuery] = useState('')
   const [sortMode, setSortMode] = useState<'name' | 'time'>('name')
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list')
   const [hoveredFile, setHoveredFile] = useState<FileInfo | null>(null)
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set())
   const selectedPathsRef = useRef<Set<string>>(selectedPaths)
@@ -36,12 +38,60 @@ export default memo(function FileList({ files, folderPath, showToast }: FileList
   const shiftPressed = useRef(false)
   const lastClickedIndex = useRef<number>(-1)
 
+  /** 虚拟滚动相关 */
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const [scrollTop, setScrollTop] = useState(0)
+  const [viewportHeight, setViewportHeight] = useState(600)
+  const rafId = useRef<number>(0)
+  const ITEM_HEIGHT = 46
+  const OVERSCAN = 8
+
   /** 文件路径 -> FileInfo 映射，用于 data-path 事件委托模式 */
   const fileMap = useMemo(() => {
     const map = new Map<string, FileInfo>()
     files.forEach((f) => map.set(f.path, f))
     return map
   }, [files])
+
+  /** Tab 切换时重置滚动和选择状态 */
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0
+    }
+    setScrollTop(0)
+    setSelectedPaths(new Set())
+    setSearchQuery('')
+    lastClickedIndex.current = -1
+  }, [folderPath])
+
+  /** 监听滚动容器尺寸变化 */
+  useEffect(() => {
+    const el = scrollContainerRef.current
+    if (!el) return
+    const observer = new ResizeObserver((entries) => {
+      setViewportHeight(entries[0].contentRect.height)
+    })
+    observer.observe(el)
+    setViewportHeight(el.clientHeight)
+    return () => observer.disconnect()
+  }, [])
+
+  /** 滚动事件处理（RAF 节流） */
+  const handleListScroll = useCallback(() => {
+    if (rafId.current) cancelAnimationFrame(rafId.current)
+    rafId.current = requestAnimationFrame(() => {
+      if (scrollContainerRef.current) {
+        setScrollTop(scrollContainerRef.current.scrollTop)
+      }
+    })
+  }, [])
+
+  /** 组件卸载时清理 RAF */
+  useEffect(() => {
+    return () => {
+      if (rafId.current) cancelAnimationFrame(rafId.current)
+    }
+  }, [])
 
   /** 同步 selectedPaths 到 ref，供 mousedown 闭包读取最新值 */
   useEffect(() => { selectedPathsRef.current = selectedPaths }, [selectedPaths])
@@ -103,6 +153,14 @@ export default memo(function FileList({ files, folderPath, showToast }: FileList
     }
     return filtered
   }, [files, searchQuery, sortMode])
+
+  /** 虚拟滚动：计算可见范围 */
+  const totalHeight = sortedAndFilteredFiles.length * ITEM_HEIGHT
+  const startIdx = Math.max(0, Math.floor(scrollTop / ITEM_HEIGHT) - OVERSCAN)
+  const endIdx = Math.min(sortedAndFilteredFiles.length, Math.ceil((scrollTop + viewportHeight) / ITEM_HEIGHT) + OVERSCAN)
+  const visibleFiles = sortedAndFilteredFiles.slice(startIdx, endIdx)
+  const topPadding = startIdx * ITEM_HEIGHT
+  const bottomPadding = Math.max(0, (sortedAndFilteredFiles.length - endIdx) * ITEM_HEIGHT)
 
   const handleContextMenu = useCallback((e: React.MouseEvent, file: FileInfo) => {
     e.preventDefault()
@@ -312,8 +370,8 @@ export default memo(function FileList({ files, folderPath, showToast }: FileList
 
   return (
     <div className="flex flex-col h-full" onClick={handleCloseContextMenu}>
-      {/* 工具栏：搜索 + 排序 */}
-      {files.length > 5 && (
+      {/* 工具栏：搜索 + 视图切换 + 排序 */}
+      {files.length > 0 && (
         <div className="px-3 pt-2.5 pb-1.5 flex-shrink-0 flex items-center gap-2">
           <div className="relative flex-1">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
@@ -329,6 +387,30 @@ export default memo(function FileList({ files, folderPath, showToast }: FileList
               className="w-full pl-9 pr-3 py-[6px] rounded-lg bg-mac-surface text-[13px] text-mac-text placeholder-mac-text-tertiary outline-none border border-mac-border focus:border-mac-accent/50 focus:ring-1 focus:ring-mac-accent/20 transition-all"
             />
           </div>
+          <button
+            onClick={() => setViewMode((prev) => (prev === 'list' ? 'grid' : 'list'))}
+            title={viewMode === 'list' ? '切换到网格视图' : '切换到列表视图'}
+            aria-label={viewMode === 'list' ? '切换到网格视图' : '切换到列表视图'}
+            className="flex-shrink-0 p-1.5 rounded-lg bg-mac-surface border border-mac-border hover:border-mac-accent/50 transition-all text-mac-text-secondary hover:text-mac-text"
+          >
+            {viewMode === 'list' ? (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="7" height="7" />
+                <rect x="14" y="3" width="7" height="7" />
+                <rect x="3" y="14" width="7" height="7" />
+                <rect x="14" y="14" width="7" height="7" />
+              </svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="8" y1="6" x2="21" y2="6" />
+                <line x1="8" y1="12" x2="21" y2="12" />
+                <line x1="8" y1="18" x2="21" y2="18" />
+                <line x1="3" y1="6" x2="3.01" y2="6" />
+                <line x1="3" y1="12" x2="3.01" y2="12" />
+                <line x1="3" y1="18" x2="3.01" y2="18" />
+              </svg>
+            )}
+          </button>
           <button
             onClick={() => setSortMode((prev) => (prev === 'name' ? 'time' : 'name'))}
             title={sortMode === 'name' ? '按名称排序' : '按时间倒序'}
@@ -349,8 +431,8 @@ export default memo(function FileList({ files, folderPath, showToast }: FileList
         </div>
       )}
 
-      {/* 文件列表 */}
-      <div className="flex-1 overflow-y-auto px-1.5 py-1">
+      {/* 文件列表（虚拟滚动） */}
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-1.5 py-1" onScroll={handleListScroll}>
         {sortedAndFilteredFiles.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-2">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-mac-text-tertiary">
@@ -362,20 +444,22 @@ export default memo(function FileList({ files, folderPath, showToast }: FileList
             </span>
           </div>
         ) : (
-          sortedAndFilteredFiles.map((file) => (
-            <FileItem
-              key={file.path}
-              file={file}
-              isSelected={selectedPaths.has(file.path)}
-              onClick={(e: React.MouseEvent) => handleClick(e, file)}
-              onDoubleClick={() => handleOpenFile(file)}
-              onContextMenu={(e: React.MouseEvent) => handleContextMenu(e, file)}
-              onMouseDown={(e: React.MouseEvent) => handleMouseDown(e, file)}
-              onMouseEnter={(e: React.MouseEvent) => handleMouseEnter(e, file)}
-              onMouseMove={handleMouseMove}
-              onMouseLeave={handleMouseLeave}
-            />
-          ))
+          <div style={{ paddingTop: topPadding, paddingBottom: bottomPadding }}>
+            {visibleFiles.map((file) => (
+              <FileItem
+                key={file.path}
+                file={file}
+                isSelected={selectedPaths.has(file.path)}
+                onClick={(e: React.MouseEvent) => handleClick(e, file)}
+                onDoubleClick={() => handleOpenFile(file)}
+                onContextMenu={(e: React.MouseEvent) => handleContextMenu(e, file)}
+                onMouseDown={(e: React.MouseEvent) => handleMouseDown(e, file)}
+                onMouseEnter={(e: React.MouseEvent) => handleMouseEnter(e, file)}
+                onMouseMove={handleMouseMove}
+                onMouseLeave={handleMouseLeave}
+              />
+            ))}
+          </div>
         )}
       </div>
 
