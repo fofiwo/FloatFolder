@@ -431,7 +431,7 @@ export default memo(function FileList({ files, folderPath, showToast }: FileList
         </div>
       )}
 
-      {/* 文件列表（虚拟滚动） */}
+      {/* 文件列表 / 网格 */}
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-1.5 py-1" onScroll={handleListScroll}>
         {sortedAndFilteredFiles.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-2">
@@ -443,10 +443,27 @@ export default memo(function FileList({ files, folderPath, showToast }: FileList
               {searchQuery ? '没有匹配的文件' : '文件夹为空'}
             </span>
           </div>
-        ) : (
+        ) : viewMode === 'list' ? (
           <div style={{ paddingTop: topPadding, paddingBottom: bottomPadding }}>
             {visibleFiles.map((file) => (
               <FileItem
+                key={file.path}
+                file={file}
+                isSelected={selectedPaths.has(file.path)}
+                onClick={(e: React.MouseEvent) => handleClick(e, file)}
+                onDoubleClick={() => handleOpenFile(file)}
+                onContextMenu={(e: React.MouseEvent) => handleContextMenu(e, file)}
+                onMouseDown={(e: React.MouseEvent) => handleMouseDown(e, file)}
+                onMouseEnter={(e: React.MouseEvent) => handleMouseEnter(e, file)}
+                onMouseMove={handleMouseMove}
+                onMouseLeave={handleMouseLeave}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-3 gap-1">
+            {sortedAndFilteredFiles.map((file) => (
+              <FileCard
                 key={file.path}
                 file={file}
                 isSelected={selectedPaths.has(file.path)}
