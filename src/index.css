@@ -137,6 +137,19 @@ html.icon-mode #root {
   justify-content: center;
   transition: opacity 0.15s ease;
   position: relative;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  padding: 0;
+  /** 扩大点击区域至 28px，不影响视觉尺寸 */
+  box-sizing: content-box;
+  -webkit-tap-highlight-color: transparent;
+}
+.traffic-btn::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
 }
 .traffic-btn svg {
   opacity: 0;
