@@ -83,7 +83,7 @@ export default function FloatingIcon({ onExpand, onOpenSettings, fileCount, fold
     if (hoverExpandTimer.current) clearTimeout(hoverExpandTimer.current)
     hoverExpandTimer.current = setTimeout(() => {
       onExpand()
-    }, 60)
+    }, 300)
   }
 
   const handleMouseLeave = () => {

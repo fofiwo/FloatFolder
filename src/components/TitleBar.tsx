@@ -10,7 +10,7 @@ interface TitleBarProps {
 
 export default function TitleBar({ alwaysOnTop, theme, onTogglePin, onToggleTheme, onOpenSettings, onMinimize, onClose }: TitleBarProps) {
   return (
-    <div className="drag-region flex items-center justify-between h-11 px-4 flex-shrink-0 border-b border-mac-border transition-colors duration-150">
+    <div className="flex items-center justify-between h-11 px-4 flex-shrink-0 border-b border-mac-border transition-colors duration-150">
       {/* macOS 红绿灯按钮 */}
       <div className="flex items-center gap-2 no-drag traffic-group">
         <button onClick={onClose} className="traffic-btn no-drag" style={{ background: '#ff5f57' }} title="隐藏到托盘" aria-label="隐藏到托盘">
@@ -39,8 +39,8 @@ export default function TitleBar({ alwaysOnTop, theme, onTogglePin, onToggleThem
         </button>
       </div>
 
-      {/* 标题 */}
-      <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5">
+      {/* 标题 - 唯一拖拽区域 */}
+      <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5 pointer-events-none drag-region px-8 py-2">
         <span className="text-mac-text-secondary text-[13px] font-medium">FloatFolder</span>
         {alwaysOnTop && (
           <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" className="text-mac-accent">
@@ -49,7 +49,7 @@ export default function TitleBar({ alwaysOnTop, theme, onTogglePin, onToggleThem
         )}
       </div>
 
-      <div className="flex items-center gap-1.5 no-drag">
+      <div className="flex items-center gap-1.5 no-drag relative z-10">
         {/* 设置按钮 */}
         <button
           onClick={onOpenSettings}

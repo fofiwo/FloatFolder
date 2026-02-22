@@ -144,8 +144,6 @@ function clamp(value: number, min: number, max: number) {
 }
 
 function shouldShowFloatingIcon(): boolean {
-  const hotkey = (store.get('hotkey') as string) || ''
-  if (!hotkey) return true
   return store.get('showFloatingIconWithHotkey') as boolean
 }
 

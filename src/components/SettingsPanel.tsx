@@ -170,26 +170,22 @@ export default function SettingsPanel({
           </div>
 
           <div className="space-y-3">
-            {/* 快捷键模式显示悬浮图标 */}
+            {/* 显示悬浮图标 */}
             <div className="flex items-center justify-between rounded-md border border-mac-border px-3 py-2 bg-mac-surface">
               <div>
                 <div className="flex items-center gap-2 text-[12px] text-mac-text">
-                  <span>快捷键下显示悬浮图标</span>
-                  <Tooltip text={currentHotkey ? '默认关闭：设置快捷键后悬浮图标会自动隐藏，可通过快捷键或托盘唤醒。开启后可同时使用“快捷键 + 悬浮图标”。' : '请先设置全局快捷键。未设置快捷键时悬浮图标始终显示。'} />
+                  <span>显示悬浮图标</span>
+                  <Tooltip text='关闭后悬浮图标将隐藏，可通过快捷键或系统托盘唤醒窗口。' />
                 </div>
-                <div className="text-[11px] text-mac-text-tertiary">仅在已设置快捷键时生效</div>
+                <div className="text-[11px] text-mac-text-tertiary">关闭后可通过托盘或快捷键唤醒</div>
               </div>
               <button
-                onClick={() => {
-                  if (!currentHotkey) return
-                  onShowFloatingIconWithHotkeyChange(!showFloatingIconWithHotkey)
-                }}
-                disabled={!currentHotkey}
-                className={`w-10 h-6 rounded-full p-0.5 transition-colors ${currentHotkey && showFloatingIconWithHotkey ? 'bg-mac-accent' : 'bg-mac-hover'} ${!currentHotkey ? 'opacity-50 cursor-not-allowed' : ''}`}
-                aria-label="切换快捷键下显示悬浮图标"
-                title={currentHotkey ? '切换快捷键下显示悬浮图标' : '请先设置快捷键'}
+                onClick={() => onShowFloatingIconWithHotkeyChange(!showFloatingIconWithHotkey)}
+                className={`w-10 h-6 rounded-full p-0.5 transition-colors ${showFloatingIconWithHotkey ? 'bg-mac-accent' : 'bg-mac-hover'}`}
+                aria-label="切换悬浮图标显示"
+                title="切换悬浮图标显示"
               >
-                <div className={`h-5 w-5 rounded-full bg-white transition-transform ${currentHotkey && showFloatingIconWithHotkey ? 'translate-x-4' : 'translate-x-0'}`} />
+                <div className={`h-5 w-5 rounded-full bg-white transition-transform ${showFloatingIconWithHotkey ? 'translate-x-4' : 'translate-x-0'}`} />
               </button>
             </div>
 

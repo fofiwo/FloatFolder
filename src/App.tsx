@@ -171,7 +171,7 @@ export default function App() {
     if (expandLockTimer.current) clearTimeout(expandLockTimer.current)
     expandLockTimer.current = setTimeout(() => {
       isInteracting.current = false
-    }, 250)
+    }, 600)
 
     expandSource.current = 'orb'
     setViewMode('expanded')
@@ -182,11 +182,12 @@ export default function App() {
     if (isInteracting.current) return
     if (collapseTimer.current) {
       clearTimeout(collapseTimer.current)
-      collapseTimer.current = null
     }
 
-    /** 需求：移出界面立即隐藏 */
-    setViewMode('icon')
+    collapseTimer.current = setTimeout(() => {
+      collapseTimer.current = null
+      setViewMode('icon')
+    }, 300)
   }, [])
 
   /** 鼠标进入展开区域时取消收起 */
@@ -195,6 +196,12 @@ export default function App() {
       clearTimeout(collapseTimer.current)
       collapseTimer.current = null
     }
+    /** 确保进入面板后不会被残留的 lock 倒计时误收起 */
+    isInteracting.current = true
+    if (expandLockTimer.current) clearTimeout(expandLockTimer.current)
+    expandLockTimer.current = setTimeout(() => {
+      isInteracting.current = false
+    }, 300)
   }, [])
 
   /** 鼠标离开展开区域时触发收起（仅悬浮球模式） */
@@ -346,8 +353,7 @@ export default function App() {
           viewMode === 'icon' ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
       >
-        {/* 有快捷键且未勾选「显示悬浮图标」时不渲染 orb，避免快捷键切换时闪现 */}
-        {(!hotkey || showFloatingIconWithHotkey) && (
+        {showFloatingIconWithHotkey && (
           <FloatingIcon
             onExpand={handleExpand}
             onOpenSettings={handleOpenSettings}
