@@ -119,7 +119,7 @@ export default function App() {
   const currentTab = tabs[activeTabIndex] || null
 
   return (
-    <div className="w-full h-full flex flex-col overflow-hidden bg-[#191923]">
+    <div className="w-full h-full flex flex-col overflow-hidden bg-mac-bg">
       <TitleBar
         alwaysOnTop={alwaysOnTop}
         onTogglePin={handleTogglePin}

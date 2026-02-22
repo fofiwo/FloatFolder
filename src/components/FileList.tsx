@@ -20,8 +20,11 @@ interface ContextMenuState {
 export default function FileList({ files, folderPath, showToast }: FileListProps) {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
   const [previewFile, setPreviewFile] = useState<{ file: FileInfo; x: number; y: number } | null>(null)
+  const previewFileRef = useRef<FileInfo | null>(null)
+  const mousePos = useRef<{ x: number; y: number }>({ x: 0, y: 0 })
   const [searchQuery, setSearchQuery] = useState('')
   const [hoveredFile, setHoveredFile] = useState<FileInfo | null>(null)
+  const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set())
   const previewTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const filteredFiles = searchQuery
@@ -39,31 +42,74 @@ export default function FileList({ files, folderPath, showToast }: FileListProps
     window.electronAPI.openFile(file.path)
   }, [])
 
-  const handleCopyFile = useCallback(
-    async (file: FileInfo) => {
-      const success = await window.electronAPI.copyFile(file.path)
-      showToast(success ? `已复制: ${file.name}` : '复制失败')
+  /** 单击选择/多选文件 */
+  const handleClick = useCallback(
+    (e: React.MouseEvent, file: FileInfo) => {
+      /** 点击时立即关闭预览 */
+      if (previewTimer.current) {
+        clearTimeout(previewTimer.current)
+        previewTimer.current = null
+      }
+      previewFileRef.current = null
+      setPreviewFile(null)
+
+      if (e.ctrlKey || e.metaKey) {
+        /** Ctrl+单击：切换多选 */
+        setSelectedPaths((prev) => {
+          const next = new Set(prev)
+          if (next.has(file.path)) {
+            next.delete(file.path)
+          } else {
+            next.add(file.path)
+          }
+          return next
+        })
+      } else {
+        /** 普通单击：选中并复制 */
+        setSelectedPaths(new Set([file.path]))
+        window.electronAPI.copyFile(file.path).then((success) => {
+          showToast(success ? `已复制: ${file.name}` : '复制失败')
+        })
+      }
     },
     [showToast]
   )
 
-  const handleDragStart = useCallback((e: React.DragEvent, file: FileInfo) => {
-    e.preventDefault()
-    window.electronAPI.startDrag(file.path)
-  }, [])
+  /** 拖拽开始（支持多选拖拽） */
+  const handleDragStart = useCallback(
+    (e: React.DragEvent, file: FileInfo) => {
+      e.preventDefault()
+      if (selectedPaths.has(file.path) && selectedPaths.size > 1) {
+        window.electronAPI.startDrag(Array.from(selectedPaths))
+      } else {
+        window.electronAPI.startDrag(file.path)
+      }
+    },
+    [selectedPaths]
+  )
 
   const handleMouseEnter = useCallback((e: React.MouseEvent, file: FileInfo) => {
     setHoveredFile(file)
+    mousePos.current = { x: e.clientX, y: e.clientY }
     const imageExts = ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp', 'svg', 'ico']
     if (!imageExts.includes(file.extension)) return
     previewTimer.current = setTimeout(() => {
-      const rect = (e.target as HTMLElement).getBoundingClientRect()
-      setPreviewFile({ file, x: rect.right + 8, y: rect.top })
-    }, 500)
+      previewFileRef.current = file
+      setPreviewFile({ file, x: mousePos.current.x + 16, y: mousePos.current.y + 8 })
+    }, 200)
+  }, [])
+
+  /** 鼠标移动时实时更新预览位置 */
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    mousePos.current = { x: e.clientX, y: e.clientY }
+    if (previewFileRef.current) {
+      setPreviewFile((prev) => prev ? { ...prev, x: e.clientX + 16, y: e.clientY + 8 } : null)
+    }
   }, [])
 
   const handleMouseLeave = useCallback(() => {
     setHoveredFile(null)
+    previewFileRef.current = null
     if (previewTimer.current) {
       clearTimeout(previewTimer.current)
       previewTimer.current = null
@@ -71,17 +117,26 @@ export default function FileList({ files, folderPath, showToast }: FileListProps
     setPreviewFile(null)
   }, [])
 
+  /** 右键菜单操作（支持多选批量操作） */
   const handleMenuAction = useCallback(
     async (action: string) => {
       if (!contextMenu) return
       const file = contextMenu.file
+      const selected = selectedPaths.has(file.path) && selectedPaths.size > 1
+        ? Array.from(selectedPaths)
+        : [file.path]
+
       switch (action) {
         case 'open':
           window.electronAPI.openFile(file.path)
           break
         case 'copy': {
-          const success = await window.electronAPI.copyFile(file.path)
-          showToast(success ? `已复制: ${file.name}` : '复制失败')
+          const success = await window.electronAPI.copyFile(selected)
+          if (success) {
+            showToast(selected.length > 1 ? `已复制 ${selected.length} 个文件` : `已复制: ${file.name}`)
+          } else {
+            showToast('复制失败')
+          }
           break
         }
         case 'copy-path':
@@ -94,7 +149,7 @@ export default function FileList({ files, folderPath, showToast }: FileListProps
       }
       setContextMenu(null)
     },
-    [contextMenu, showToast]
+    [contextMenu, selectedPaths, showToast]
   )
 
   return (
@@ -136,7 +191,8 @@ export default function FileList({ files, folderPath, showToast }: FileListProps
             <FileItem
               key={file.path}
               file={file}
-              onClick={() => handleCopyFile(file)}
+              isSelected={selectedPaths.has(file.path)}
+              onClick={(e: React.MouseEvent) => handleClick(e, file)}
               onDoubleClick={() => handleOpenFile(file)}
               onContextMenu={(e) => handleContextMenu(e, file)}
               onDragStart={(e) => handleDragStart(e, file)}
@@ -149,7 +205,7 @@ export default function FileList({ files, folderPath, showToast }: FileListProps
 
       {/* 底部状态栏 */}
       <div className="flex items-center justify-between px-3 py-1.5 border-t border-glass-border text-[10px] text-white/25 flex-shrink-0">
-        <span>{filteredFiles.length} 个文件</span>
+        <span>{selectedPaths.size > 0 ? `已选 ${selectedPaths.size} / ` : ''}{filteredFiles.length} 个文件</span>
         {hoveredFile ? (
           <span className="truncate max-w-[260px] text-white/40">
             {hoveredFile.name} · {hoveredFile.isDirectory ? '文件夹' : formatFileSize(hoveredFile.size)}

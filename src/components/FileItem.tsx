@@ -10,6 +10,7 @@ interface FileItemProps {
   onContextMenu: (e: React.MouseEvent) => void
   onDragStart: (e: React.DragEvent) => void
   onMouseEnter: (e: React.MouseEvent) => void
+  onMouseMove: (e: React.MouseEvent) => void
   onMouseLeave: () => void
 }
 
@@ -21,6 +22,7 @@ export default memo(function FileItem({
   onContextMenu,
   onDragStart,
   onMouseEnter,
+  onMouseMove,
   onMouseLeave
 }: FileItemProps) {
   const [thumbnail, setThumbnail] = useState<string | null>(null)
@@ -58,6 +60,7 @@ export default memo(function FileItem({
       draggable
       onDragStart={onDragStart}
       onMouseEnter={onMouseEnter}
+      onMouseMove={onMouseMove}
       onMouseLeave={onMouseLeave}
     >
       {/* 文件图标/缩略图 */}

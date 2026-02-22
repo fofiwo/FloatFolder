@@ -37,7 +37,7 @@ function createWindow() {
     resizable: true,
     alwaysOnTop,
     skipTaskbar: false,
-    backgroundColor: '#191923',
+    backgroundColor: '#1e1e1e',
     roundedCorners: true,
     icon: path.join(__dirname, '../public/icon.svg'),
     webPreferences: {
@@ -83,7 +83,7 @@ function saveWindowBounds() {
 /** 创建系统托盘 */
 function createTray() {
   const iconPath = path.join(__dirname, '../public/icon.svg')
-  let trayIcon: nativeImage
+  let trayIcon: Electron.NativeImage
 
   if (fs.existsSync(iconPath)) {
     trayIcon = nativeImage.createFromPath(iconPath).resize({ width: 16, height: 16 })
@@ -310,7 +310,7 @@ ipcMain.on('ondragstart', (event, filePaths: string | string[]) => {
 })
 
 /** 获取默认拖拽图标 */
-function getDefaultDragIcon(): nativeImage {
+function getDefaultDragIcon(): Electron.NativeImage {
   /** 创建一个简单的默认图标 */
   return nativeImage.createFromBuffer(
     Buffer.from(
