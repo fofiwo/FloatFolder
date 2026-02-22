@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Tray, Menu, dialog, shell, nativeImage, clipboard } from 'electron'
+import { app, BrowserWindow, ipcMain, Tray, Menu, dialog, shell, nativeImage, clipboard, globalShortcut } from 'electron'
 import path from 'path'
 import { execSync } from 'child_process'
 import fs from 'fs'
@@ -14,12 +14,18 @@ const store = new Store({
     alwaysOnTop: true,
     autoLaunch: false,
     opacity: 0.95,
-    theme: 'light' as 'light' | 'dark'
+    theme: 'light' as 'light' | 'dark',
+    hotkey: '' as string
   }
 })
 
+/** 图标模式窗口尺寸 */
+const ICON_MODE_SIZE = { width: 72, height: 72 }
+let currentMode: 'icon' | 'expanded' = 'icon'
+
 let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
+let registeredHotkey: string | null = null
 const watchers: Map<string, chokidar.FSWatcher> = new Map()
 
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL
@@ -30,15 +36,18 @@ function createWindow() {
   const alwaysOnTop = store.get('alwaysOnTop') as boolean
 
   mainWindow = new BrowserWindow({
-    ...bounds,
-    minWidth: 300,
-    minHeight: 350,
+    x: bounds.x,
+    y: bounds.y,
+    width: ICON_MODE_SIZE.width,
+    height: ICON_MODE_SIZE.height,
+    minWidth: 0,
+    minHeight: 0,
     frame: false,
-    transparent: false,
-    resizable: true,
+    transparent: true,
+    resizable: false,
     alwaysOnTop,
-    skipTaskbar: false,
-    backgroundColor: (store.get('theme') === 'dark') ? '#1e1e1e' : '#ffffff',
+    skipTaskbar: true,
+    hasShadow: false,
     roundedCorners: true,
     icon: path.join(__dirname, '../public/icon.svg'),
     webPreferences: {
@@ -47,6 +56,8 @@ function createWindow() {
       nodeIntegration: false
     }
   })
+
+  currentMode = 'icon'
 
   if (VITE_DEV_SERVER_URL) {
     /** 带重试的加载机制，解决 Vite 未就绪的时序问题 */
@@ -62,9 +73,13 @@ function createWindow() {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))
   }
 
-  /** 保存窗口尺寸和位置 */
-  mainWindow.on('resized', saveWindowBounds)
-  mainWindow.on('moved', saveWindowBounds)
+  /** 保存窗口尺寸和位置（仅在展开模式下保存） */
+  mainWindow.on('resized', () => {
+    if (currentMode === 'expanded') saveWindowBounds()
+  })
+  mainWindow.on('moved', () => {
+    if (currentMode === 'expanded') saveWindowBounds()
+  })
 
   mainWindow.on('closed', () => {
     mainWindow = null
@@ -73,6 +88,64 @@ function createWindow() {
   /** 初始化已保存的文件夹监听 */
   const folders = store.get('folders') as string[]
   folders.forEach((folder) => startWatching(folder))
+
+  /** 初始化全局快捷键 */
+  const savedHotkey = store.get('hotkey') as string
+  if (savedHotkey) {
+    registerGlobalHotkey(savedHotkey)
+  }
+}
+
+/** 切换窗口模式（图标/展开） */
+function setWindowMode(mode: 'icon' | 'expanded') {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  if (mode === currentMode) return
+
+  currentMode = mode
+
+  if (mode === 'icon') {
+    /** 切换到图标模式：缩小窗口 */
+    mainWindow.setResizable(false)
+    mainWindow.setMinimumSize(0, 0)
+    mainWindow.setSize(ICON_MODE_SIZE.width, ICON_MODE_SIZE.height, true)
+    mainWindow.setSkipTaskbar(true)
+    mainWindow.setHasShadow(false)
+  } else {
+    /** 切换到展开模式：恢复保存的窗口尺寸 */
+    const bounds = store.get('windowBounds') as { x: number; y: number; width: number; height: number }
+    mainWindow.setHasShadow(true)
+    mainWindow.setSkipTaskbar(false)
+    mainWindow.setMinimumSize(300, 350)
+    mainWindow.setSize(bounds.width, bounds.height, true)
+    mainWindow.setResizable(true)
+  }
+}
+
+/** 注册全局快捷键 */
+function registerGlobalHotkey(hotkey: string): boolean {
+  /** 先注销已有的快捷键 */
+  if (registeredHotkey) {
+    try { globalShortcut.unregister(registeredHotkey) } catch {}
+    registeredHotkey = null
+  }
+
+  if (!hotkey) return true
+
+  try {
+    const success = globalShortcut.register(hotkey, () => {
+      if (!mainWindow || mainWindow.isDestroyed()) return
+      mainWindow.show()
+      mainWindow.focus()
+      mainWindow.webContents.send('toggle-expand')
+    })
+    if (success) {
+      registeredHotkey = hotkey
+    }
+    return success
+  } catch (err) {
+    console.error('注册全局快捷键失败:', err)
+    return false
+  }
 }
 
 function saveWindowBounds() {
@@ -293,20 +366,34 @@ ipcMain.handle('copy-path', (_event, filePath: string) => {
 /** 原生文件拖拽（支持单个或多个文件） */
 ipcMain.on('ondragstart', (event, filePaths: string | string[]) => {
   const paths = Array.isArray(filePaths) ? filePaths : [filePaths]
-  const icon = getDefaultDragIcon()
 
-  if (paths.length === 1) {
+  /** 统一图标逻辑：优先用第一个文件的缩略图，无效则用默认图标 */
+  const defaultIcon = getDefaultDragIcon()
+  let icon = defaultIcon
+  try {
     const customIcon = nativeImage.createFromPath(paths[0]).resize({ width: 32, height: 32 })
-    event.sender.startDrag({
-      file: paths[0],
-      icon: customIcon.isEmpty() ? icon : customIcon
-    })
-  } else {
-    event.sender.startDrag({
-      file: paths[0],
-      files: paths,
-      icon
-    })
+    if (!customIcon.isEmpty()) icon = customIcon
+  } catch { /* 使用默认图标 */ }
+  if (icon.isEmpty()) icon = defaultIcon
+
+  try {
+    if (paths.length === 1) {
+      event.sender.startDrag({ file: paths[0], icon })
+    } else {
+      /**
+       * Windows 兼容：files 参数可能不生效，
+       * 改为逐个调用 startDrag 只对第一个文件生效，
+       * 因此直接用 (file + files) 并添加 fallback
+       */
+      try {
+        event.sender.startDrag({ file: paths[0], files: paths, icon })
+      } catch {
+        /** fallback：仅拖第一个文件 */
+        event.sender.startDrag({ file: paths[0], icon })
+      }
+    }
+  } catch (err) {
+    console.error('[startDrag] 拖拽失败:', err)
   }
 })
 
@@ -344,8 +431,23 @@ ipcMain.handle('get-settings', () => {
     autoLaunch: store.get('autoLaunch'),
     opacity: store.get('opacity'),
     activeTab: store.get('activeTab'),
-    theme: store.get('theme') || 'light'
+    theme: store.get('theme') || 'light',
+    hotkey: store.get('hotkey') || ''
   }
+})
+
+/** 设置全局快捷键 */
+ipcMain.handle('set-hotkey', (_event, hotkey: string) => {
+  const success = registerGlobalHotkey(hotkey)
+  if (success) {
+    store.set('hotkey', hotkey)
+  }
+  return success
+})
+
+/** 设置窗口模式 */
+ipcMain.handle('set-window-mode', (_event, mode: 'icon' | 'expanded') => {
+  setWindowMode(mode)
 })
 
 /** 设置主题 */
@@ -434,4 +536,6 @@ app.on('before-quit', () => {
   /** 关闭所有文件监听 */
   watchers.forEach((watcher) => watcher.close())
   watchers.clear()
+  /** 注销全局快捷键 */
+  globalShortcut.unregisterAll()
 })
