@@ -167,6 +167,31 @@ function refreshTrayMenu() {
   tray.setContextMenu(contextMenu)
 }
 
+/** 根据鼠标位置定位窗口，确保不超出屏幕边界 */
+function positionWindowNearCursor() {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+
+  const cursor = screen.getCursorScreenPoint()
+  const display = screen.getDisplayNearestPoint(cursor)
+  const workArea = display.workArea
+
+  const bounds = store.get('windowBounds') as { width: number; height: number }
+  const width = bounds?.width ?? 400
+  const height = bounds?.height ?? 500
+
+  const margin = 12
+
+  // 计算窗口位置：鼠标居中，稍微偏下一点避免遮挡鼠标
+  let x = cursor.x - Math.round(width / 2)
+  let y = cursor.y + 20
+
+  // 边界检查：确保窗口不超出屏幕
+  x = Math.max(workArea.x + margin, Math.min(x, workArea.x + workArea.width - width - margin))
+  y = Math.max(workArea.y + margin, Math.min(y, workArea.y + workArea.height - height - margin))
+
+  mainWindow.setBounds({ x, y, width, height }, false)
+}
+
 /** 注册全局快捷键 */
 function registerGlobalHotkey(hotkey: string): boolean {
   /** 先注销已有的快捷键 */
@@ -183,6 +208,8 @@ function registerGlobalHotkey(hotkey: string): boolean {
       if (mainWindow.isVisible()) {
         mainWindow.hide()
       } else {
+        // 根据鼠标位置定位窗口
+        positionWindowNearCursor()
         mainWindow.show()
         mainWindow.focus()
       }
