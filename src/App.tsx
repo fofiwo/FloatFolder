@@ -22,6 +22,7 @@ export default function App() {
   const [viewMode, setViewMode] = useState<ViewMode>('icon')
   const [hotkey, setHotkey] = useState('')
   const [showFloatingIconWithHotkey, setShowFloatingIconWithHotkey] = useState(false)
+  const [isInstantLayerSwitch, setIsInstantLayerSwitch] = useState(false)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const collapseTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isInteracting = useRef(false)
@@ -116,7 +117,16 @@ export default function App() {
   /** 监听主进程的快捷键唤醒事件 */
   useEffect(() => {
     const unsubscribe = window.electronAPI.onToggleExpand((data) => {
-      setViewMode(data.mode === 'expanded' ? 'expanded' : 'icon')
+      /**
+       * 快捷键唤醒时：如果分层用 opacity 过渡，会在 expanded layer 变为不透明前短暂看到 icon layer。
+       * 这里在首帧禁用过渡，让 expanded 立即显示，避免“闪现悬浮图标”。
+       */
+      if (data?.source === 'hotkey') {
+        setIsInstantLayerSwitch(true)
+        requestAnimationFrame(() => setIsInstantLayerSwitch(false))
+      }
+
+      setViewMode(data?.mode === 'expanded' ? 'expanded' : 'icon')
     })
     return () => unsubscribe()
   }, [])
@@ -319,10 +329,10 @@ export default function App() {
   const totalFiles = tabs.reduce((sum, tab) => sum + tab.files.filter(f => !f.isDirectory).length, 0)
 
   return (
-    <div className="w-full h-full overflow-hidden">
+    <div className="relative w-full h-full overflow-hidden">
       {/* icon layer（保持挂载，避免切换时闪烁/重建） */}
       <div
-        className={`absolute inset-0 bg-transparent transition-opacity duration-150 ${
+        className={`absolute inset-0 bg-transparent ${isInstantLayerSwitch ? 'transition-none' : 'transition-opacity duration-150'} ${
           viewMode === 'icon' ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
       >
@@ -336,7 +346,7 @@ export default function App() {
 
       {/* expanded layer */}
       <div
-        className={`absolute inset-0 flex flex-col overflow-hidden bg-mac-bg transition-opacity duration-150 ${
+        className={`absolute inset-0 flex flex-col overflow-hidden bg-mac-bg ${isInstantLayerSwitch ? 'transition-none' : 'transition-opacity duration-150'} ${
           viewMode === 'expanded' ? 'opacity-100 pointer-events-auto expand-enter' : 'opacity-0 pointer-events-none'
         }`}
         onMouseEnter={handleExpandedMouseEnter}
@@ -378,7 +388,7 @@ export default function App() {
 
       {/* settings layer */}
       <div
-        className={`absolute inset-0 overflow-hidden bg-mac-bg transition-opacity duration-150 ${
+        className={`absolute inset-0 overflow-hidden bg-mac-bg ${isInstantLayerSwitch ? 'transition-none' : 'transition-opacity duration-150'} ${
           viewMode === 'settings' ? 'opacity-100 pointer-events-auto expand-enter' : 'opacity-0 pointer-events-none'
         }`}
       >
