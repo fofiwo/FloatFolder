@@ -8,10 +8,11 @@
 ## [2.0.1] - 2026-02-22
 
 ### Fixed（fix）
-- **修复打包后应用图标丢失问题**
-  - BrowserWindow 和 Tray 图标路径在生产环境下指向不存在的 `public/` 目录，改为正确指向 `dist/`（Vite 构建输出）
-  - 新增 `resolveIcon()` 辅助函数统一处理开发/生产环境图标路径差异
-  - Windows 平台窗口图标改用 `.ico` 格式，确保任务栏和系统托盘正确显示图标
+- **修复应用图标不显示导致系统图标行被占据**
+  - 新增 `resolveIcon()` 依次搜索 `public/`、`dist/`、`resourcesPath` 多个候选路径
+  - 新增 `loadNativeImage()` 辅助函数：ICO 用 `createFromPath`，PNG 用 `createFromBuffer`（Windows 兼容性更好）
+  - 修复 Tray 图标：原 ICO 加载为 256x256 直接传入导致托盘无法显示，改为优先使用 16px PNG
+  - BrowserWindow 窗口图标改用 `.ico` 格式，确保任务栏正确显示
 
 ## [2.0.0] - 2026-02-22
 
