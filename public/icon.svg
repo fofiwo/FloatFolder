@@ -1,16 +1,30 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
   <defs>
-    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFE066"/>
+      <stop offset="100%" stop-color="#FFD025"/>
     </linearGradient>
   </defs>
-  <rect width="256" height="256" rx="48" fill="url(#grad)"/>
-  <g transform="translate(128,128)" fill="none" stroke="white" stroke-width="12" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M-50,50 L-50,-30 L-20,-50 L50,-50 L50,50 Z" fill="rgba(255,255,255,0.15)"/>
-    <path d="M-50,-30 L-20,-30 L-20,-50" fill="none"/>
-    <line x1="-30" y1="-5" x2="30" y2="-5"/>
-    <line x1="-30" y1="15" x2="30" y2="15"/>
-    <line x1="-30" y1="35" x2="10" y2="35"/>
-  </g>
+  <!-- 背景圆角矩形 -->
+  <rect width="256" height="256" rx="56" fill="url(#bg)"/>
+  <!-- 脸部 -->
+  <ellipse cx="128" cy="148" rx="72" ry="68" fill="#FFECD2"/>
+  <ellipse cx="128" cy="148" rx="72" ry="68" fill="none" stroke="#5D4037" stroke-width="3.5"/>
+  <!-- 头发（蜡笔小新标志性锯齿刘海） -->
+  <path d="M56,120 Q60,60 90,55 L85,80 Q95,45 115,42 L112,72 Q125,38 145,40 L140,70 Q155,42 170,48 L163,78 Q178,55 195,65 Q200,110 200,120" fill="#2D2D2D" stroke="#1A1A1A" stroke-width="2"/>
+  <!-- 粗眉毛（标志性特征） -->
+  <rect x="78" y="120" width="32" height="10" rx="5" fill="#1A1A1A"/>
+  <rect x="146" y="120" width="32" height="10" rx="5" fill="#1A1A1A"/>
+  <!-- 眼睛 -->
+  <ellipse cx="94" cy="148" rx="10" ry="11" fill="#1A1A1A"/>
+  <ellipse cx="162" cy="148" rx="10" ry="11" fill="#1A1A1A"/>
+  <ellipse cx="96" cy="145" rx="3.5" ry="4" fill="white"/>
+  <ellipse cx="164" cy="145" rx="3.5" ry="4" fill="white"/>
+  <!-- 腮红 -->
+  <ellipse cx="72" cy="168" rx="14" ry="9" fill="#FF8A80" opacity="0.5"/>
+  <ellipse cx="184" cy="168" rx="14" ry="9" fill="#FF8A80" opacity="0.5"/>
+  <!-- 嘴巴 -->
+  <path d="M118,178 Q128,192 138,178" fill="none" stroke="#5D4037" stroke-width="3" stroke-linecap="round"/>
+  <!-- 鼻子 -->
+  <ellipse cx="128" cy="164" rx="4" ry="3" fill="#E8B89D"/>
 </svg>
