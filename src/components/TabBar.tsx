@@ -1,3 +1,4 @@
+import { useState, useRef, useCallback } from 'react'
 import type { FolderTab } from '../types'
 
 interface TabBarProps {
@@ -6,20 +7,58 @@ interface TabBarProps {
   onTabChange: (index: number) => void
   onTabRemove: (index: number) => void
   onAddTab: () => void
+  onTabReorder: (fromIndex: number, toIndex: number) => void
 }
 
-export default function TabBar({ tabs, activeIndex, onTabChange, onTabRemove, onAddTab }: TabBarProps) {
+export default function TabBar({ tabs, activeIndex, onTabChange, onTabRemove, onAddTab, onTabReorder }: TabBarProps) {
+  const [dragIndex, setDragIndex] = useState<number | null>(null)
+  const [dropIndex, setDropIndex] = useState<number | null>(null)
+  const dragStartX = useRef(0)
+  const isDragging = useRef(false)
+
+  const handleDragStart = useCallback((e: React.DragEvent, index: number) => {
+    isDragging.current = true
+    setDragIndex(index)
+    dragStartX.current = e.clientX
+    e.dataTransfer.effectAllowed = 'move'
+    /** 设置透明拖拽图像 */
+    const img = new Image()
+    img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
+    e.dataTransfer.setDragImage(img, 0, 0)
+  }, [])
+
+  const handleDragOver = useCallback((e: React.DragEvent, index: number) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    if (dragIndex !== null && index !== dragIndex) {
+      setDropIndex(index)
+    }
+  }, [dragIndex])
+
+  const handleDragEnd = useCallback(() => {
+    if (dragIndex !== null && dropIndex !== null && dragIndex !== dropIndex) {
+      onTabReorder(dragIndex, dropIndex)
+    }
+    setDragIndex(null)
+    setDropIndex(null)
+    isDragging.current = false
+  }, [dragIndex, dropIndex, onTabReorder])
+
   return (
     <div className="flex items-center gap-1 px-3 py-1.5 border-b border-mac-border flex-shrink-0 overflow-x-auto no-drag bg-mac-bg"
       style={{ scrollbarWidth: 'none' }}>
       {tabs.map((tab, index) => (
         <div
           key={tab.path}
+          draggable
+          onDragStart={(e) => handleDragStart(e, index)}
+          onDragOver={(e) => handleDragOver(e, index)}
+          onDragEnd={handleDragEnd}
           className={`group relative flex items-center gap-1.5 h-7 px-3 cursor-pointer text-[12px] flex-shrink-0 max-w-[180px] rounded-md transition-all duration-150 ${
             index === activeIndex
               ? 'bg-mac-elevated text-mac-text shadow-sm'
               : 'text-mac-text-tertiary hover:text-mac-text-secondary hover:bg-white/[0.04]'
-          }`}
+          } ${dragIndex === index ? 'opacity-40' : ''} ${dropIndex === index ? 'ring-1 ring-mac-accent/50' : ''}`}
           onClick={() => onTabChange(index)}
           title={tab.path}
         >

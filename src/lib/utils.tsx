@@ -24,11 +24,13 @@ export function formatTime(isoString: string): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
-/** 根据文件类型返回对应图标 SVG */
+/** 根据文件类型返回对应图标 SVG（18px 适配 32px 容器） */
 export function getFileIcon(file: FileInfo): JSX.Element {
+  const s = 18
+
   if (file.isDirectory) {
     return (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="#0a84ff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
       </svg>
     )
@@ -37,10 +39,9 @@ export function getFileIcon(file: FileInfo): JSX.Element {
   const ext = file.extension
   const iconColor = getColorByExtension(ext)
 
-  /** 图片文件 */
   if (['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp', 'svg', 'ico'].includes(ext)) {
     return (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
         <circle cx="9" cy="9" r="2" />
         <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
@@ -48,20 +49,18 @@ export function getFileIcon(file: FileInfo): JSX.Element {
     )
   }
 
-  /** 视频文件 */
   if (['mp4', 'avi', 'mov', 'mkv', 'wmv', 'flv', 'webm'].includes(ext)) {
     return (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5" />
         <rect width="14" height="12" x="2" y="6" rx="2" />
       </svg>
     )
   }
 
-  /** 音频文件 */
   if (['mp3', 'wav', 'flac', 'aac', 'ogg', 'wma'].includes(ext)) {
     return (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M9 18V5l12-2v13" />
         <circle cx="6" cy="18" r="3" />
         <circle cx="18" cy="16" r="3" />
@@ -69,10 +68,9 @@ export function getFileIcon(file: FileInfo): JSX.Element {
     )
   }
 
-  /** 文档文件 */
   if (['pdf', 'doc', 'docx', 'txt', 'rtf', 'odt'].includes(ext)) {
     return (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
         <path d="M14 2v4a2 2 0 0 0 2 2h4" />
         <path d="M10 9H8" />
@@ -82,10 +80,9 @@ export function getFileIcon(file: FileInfo): JSX.Element {
     )
   }
 
-  /** 表格文件 */
   if (['xls', 'xlsx', 'csv'].includes(ext)) {
     return (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
         <path d="M14 2v4a2 2 0 0 0 2 2h4" />
         <rect width="8" height="6" x="8" y="12" rx="1" />
@@ -93,20 +90,18 @@ export function getFileIcon(file: FileInfo): JSX.Element {
     )
   }
 
-  /** 代码文件 */
   if (['js', 'ts', 'jsx', 'tsx', 'py', 'java', 'c', 'cpp', 'go', 'rs', 'html', 'css', 'json', 'xml', 'yaml', 'yml', 'md', 'sh', 'bat'].includes(ext)) {
     return (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <polyline points="16 18 22 12 16 6" />
         <polyline points="8 6 2 12 8 18" />
       </svg>
     )
   }
 
-  /** 压缩文件 */
   if (['zip', 'rar', '7z', 'tar', 'gz', 'bz2'].includes(ext)) {
     return (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
         <path d="M14 2v4a2 2 0 0 0 2 2h4" />
         <path d="M10 12v6" />
@@ -115,10 +110,9 @@ export function getFileIcon(file: FileInfo): JSX.Element {
     )
   }
 
-  /** 可执行文件 */
   if (['exe', 'msi', 'dmg', 'app'].includes(ext)) {
     return (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <rect width="20" height="14" x="2" y="3" rx="2" />
         <line x1="8" x2="16" y1="21" y2="21" />
         <line x1="12" x2="12" y1="17" y2="21" />
@@ -126,9 +120,8 @@ export function getFileIcon(file: FileInfo): JSX.Element {
     )
   }
 
-  /** 默认文件图标 */
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
       <path d="M14 2v4a2 2 0 0 0 2 2h4" />
     </svg>

@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getFolders: () => ipcRenderer.invoke('get-folders'),
   getFolderContents: (folderPath: string) => ipcRenderer.invoke('get-folder-contents', folderPath),
   removeFolder: (folderPath: string) => ipcRenderer.invoke('remove-folder', folderPath),
+  reorderFolders: (folderPaths: string[]) => ipcRenderer.invoke('reorder-folders', folderPaths),
 
   /** 文件操作 */
   openFile: (filePath: string) => ipcRenderer.invoke('open-file', filePath),

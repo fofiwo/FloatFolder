@@ -104,6 +104,28 @@ export default function App() {
     [tabs, activeTabIndex]
   )
 
+  /** 拖拽重排标签页 */
+  const handleTabReorder = useCallback((fromIndex: number, toIndex: number) => {
+    setTabs((prev) => {
+      const newTabs = [...prev]
+      const [moved] = newTabs.splice(fromIndex, 1)
+      newTabs.splice(toIndex, 0, moved)
+
+      /** 持久化新顺序 */
+      window.electronAPI.reorderFolders(newTabs.map((t) => t.path))
+
+      /** 更新 activeTabIndex 以跟随当前激活的 tab */
+      const currentPath = prev[activeTabIndex]?.path
+      const newActiveIndex = newTabs.findIndex((t) => t.path === currentPath)
+      if (newActiveIndex >= 0 && newActiveIndex !== activeTabIndex) {
+        setActiveTabIndex(newActiveIndex)
+        window.electronAPI.setActiveTab(newActiveIndex)
+      }
+
+      return newTabs
+    })
+  }, [activeTabIndex])
+
   /** 切换标签页 */
   const handleTabChange = useCallback((index: number) => {
     setActiveTabIndex(index)
@@ -134,6 +156,7 @@ export default function App() {
           onTabChange={handleTabChange}
           onTabRemove={handleRemoveTab}
           onAddTab={handleAddFolder}
+          onTabReorder={handleTabReorder}
         />
       )}
 

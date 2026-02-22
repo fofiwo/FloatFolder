@@ -29,6 +29,7 @@ export interface ElectronAPI {
   getFolders: () => Promise<string[]>
   getFolderContents: (folderPath: string) => Promise<FileInfo[]>
   removeFolder: (folderPath: string) => Promise<string[]>
+  reorderFolders: (folderPaths: string[]) => Promise<void>
   openFile: (filePath: string) => Promise<void>
   showInExplorer: (filePath: string) => Promise<void>
   copyFile: (filePaths: string | string[]) => Promise<boolean>

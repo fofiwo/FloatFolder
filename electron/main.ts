@@ -346,6 +346,11 @@ ipcMain.handle('get-settings', () => {
   }
 })
 
+/** 重排文件夹顺序 */
+ipcMain.handle('reorder-folders', (_event, folderPaths: string[]) => {
+  store.set('folders', folderPaths)
+})
+
 /** 保存活跃标签页 */
 ipcMain.handle('set-active-tab', (_event, index: number) => {
   store.set('activeTab', index)
