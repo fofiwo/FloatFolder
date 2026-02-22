@@ -46,13 +46,6 @@ export default memo(function FileList({ files, folderPath, showToast }: FileList
   const ITEM_HEIGHT = 46
   const OVERSCAN = 8
 
-  /** 文件路径 -> FileInfo 映射，用于 data-path 事件委托模式 */
-  const fileMap = useMemo(() => {
-    const map = new Map<string, FileInfo>()
-    files.forEach((f) => map.set(f.path, f))
-    return map
-  }, [files])
-
   /** Tab 切换时重置滚动和选择状态 */
   useEffect(() => {
     if (scrollContainerRef.current) {
@@ -154,8 +147,7 @@ export default memo(function FileList({ files, folderPath, showToast }: FileList
     return filtered
   }, [files, searchQuery, sortMode])
 
-  /** 虚拟滚动：计算可见范围 */
-  const totalHeight = sortedAndFilteredFiles.length * ITEM_HEIGHT
+  /** 虚拟滚动：计算可见范围（列表视图使用） */
   const startIdx = Math.max(0, Math.floor(scrollTop / ITEM_HEIGHT) - OVERSCAN)
   const endIdx = Math.min(sortedAndFilteredFiles.length, Math.ceil((scrollTop + viewportHeight) / ITEM_HEIGHT) + OVERSCAN)
   const visibleFiles = sortedAndFilteredFiles.slice(startIdx, endIdx)
