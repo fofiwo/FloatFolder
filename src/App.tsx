@@ -5,10 +5,9 @@ import TabBar from './components/TabBar'
 import FileList from './components/FileList'
 import Toast from './components/Toast'
 import EmptyState from './components/EmptyState'
-import FloatingIcon from './components/FloatingIcon'
 import SettingsPanel from './components/SettingsPanel'
 
-type ViewMode = 'icon' | 'expanded' | 'settings'
+type ViewMode = 'expanded' | 'settings'
 
 export default function App() {
   const [tabs, setTabs] = useState<FolderTab[]>([])
@@ -19,19 +18,9 @@ export default function App() {
   const [theme, setTheme] = useState<'light' | 'dark'>('light')
   const [toastMessage, setToastMessage] = useState('')
   const [toastVisible, setToastVisible] = useState(false)
-  const [viewMode, setViewMode] = useState<ViewMode>('icon')
+  const [viewMode, setViewMode] = useState<ViewMode>('expanded')
   const [hotkey, setHotkey] = useState('')
-  const [showFloatingIconWithHotkey, setShowFloatingIconWithHotkey] = useState(false)
-  const [isInstantLayerSwitch, setIsInstantLayerSwitch] = useState(false)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const collapseTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const isInteracting = useRef(false)
-  const expandLockTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  /** 记录展开来源：hotkey 模式不因鼠标移出而收起，orb 模式鼠标移出自动收起 */
-  const expandSource = useRef<'hotkey' | 'orb'>('orb')
-  /** 用 ref 追踪最新 viewMode，避免 mouseleave 闭包读到旧值 */
-  const viewModeRef = useRef<ViewMode>(viewMode)
-  viewModeRef.current = viewMode
 
   /** 应用主题到 html 元素 */
   useEffect(() => {
@@ -43,12 +32,6 @@ export default function App() {
     }
   }, [theme])
 
-  /** 图标模式下强制透明背景，避免 Windows 透明窗出现白底/白边 */
-  useEffect(() => {
-    const html = document.documentElement
-    html.classList.toggle('icon-mode', viewMode === 'icon')
-  }, [viewMode])
-
   /** 初始化：加载已保存的文件夹 */
   useEffect(() => {
     async function init() {
@@ -58,7 +41,6 @@ export default function App() {
       setOpacity(settings.opacity)
       setTheme(settings.theme || 'light')
       setHotkey(settings.hotkey || '')
-      setShowFloatingIconWithHotkey(!!settings.showFloatingIconWithHotkey)
 
       const folders = await window.electronAPI.getFolders()
       if (folders.length > 0) {
@@ -104,9 +86,6 @@ export default function App() {
       if (data.hotkey !== undefined) {
         setHotkey(data.hotkey)
       }
-      if (data.showFloatingIconWithHotkey !== undefined) {
-        setShowFloatingIconWithHotkey(!!data.showFloatingIconWithHotkey)
-      }
     })
     return () => unsubscribe()
   }, [])
@@ -122,29 +101,10 @@ export default function App() {
   /** 监听主进程的快捷键唤醒事件 */
   useEffect(() => {
     const unsubscribe = window.electronAPI.onToggleExpand((data) => {
-      /**
-       * 快捷键唤醒时：如果分层用 opacity 过渡，会在 expanded layer 变为不透明前短暂看到 icon layer。
-       * 这里在首帧禁用过渡，让 expanded 立即显示，避免“闪现悬浮图标”。
-       */
-      if (data?.source === 'hotkey') {
-        setIsInstantLayerSwitch(true)
-        requestAnimationFrame(() => setIsInstantLayerSwitch(false))
-        expandSource.current = 'hotkey'
-      }
-
-      setViewMode(data?.mode === 'expanded' ? 'expanded' : 'icon')
+      setViewMode(data?.mode === 'expanded' ? 'expanded' : 'settings')
     })
     return () => unsubscribe()
   }, [])
-
-  /** 切换到图标模式时通知主进程缩小窗口 */
-  useEffect(() => {
-    if (viewMode === 'icon') {
-      window.electronAPI.setWindowMode('icon')
-    } else {
-      window.electronAPI.setWindowMode('expanded')
-    }
-  }, [viewMode])
 
   /** 显示 Toast 提示 */
   const showToast = useCallback((message: string) => {
@@ -155,63 +115,6 @@ export default function App() {
       setToastVisible(false)
     }, 2000)
   }, [])
-
-  /** 展开面板（悬浮球触发） */
-  const handleExpand = useCallback(() => {
-    if (collapseTimer.current) {
-      clearTimeout(collapseTimer.current)
-      collapseTimer.current = null
-    }
-
-    /**
-     * 悬停展开时窗口会立刻 resize，个别系统上会产生"抖动/不跟手"体感。
-     * 这里给一个很短的交互锁，避免刚展开就被收起逻辑抢占。
-     */
-    isInteracting.current = true
-    if (expandLockTimer.current) clearTimeout(expandLockTimer.current)
-    expandLockTimer.current = setTimeout(() => {
-      isInteracting.current = false
-    }, 600)
-
-    expandSource.current = 'orb'
-    setViewMode('expanded')
-  }, [])
-
-  /** 收起面板（带延迟，防止鼠标移动过程中误收起） */
-  const handleCollapse = useCallback(() => {
-    if (isInteracting.current) return
-    if (collapseTimer.current) {
-      clearTimeout(collapseTimer.current)
-    }
-
-    collapseTimer.current = setTimeout(() => {
-      collapseTimer.current = null
-      setViewMode('icon')
-    }, 300)
-  }, [])
-
-  /** 鼠标进入展开区域时取消收起 */
-  const handleExpandedMouseEnter = useCallback(() => {
-    if (collapseTimer.current) {
-      clearTimeout(collapseTimer.current)
-      collapseTimer.current = null
-    }
-    /** 确保进入面板后不会被残留的 lock 倒计时误收起 */
-    isInteracting.current = true
-    if (expandLockTimer.current) clearTimeout(expandLockTimer.current)
-    expandLockTimer.current = setTimeout(() => {
-      isInteracting.current = false
-    }, 300)
-  }, [])
-
-  /** 鼠标离开展开区域时触发收起（仅悬浮球模式） */
-  const handleExpandedMouseLeave = useCallback(() => {
-    /** 使用 ref 读取最新值，避免异步 mouseleave 事件闭包捕获旧 viewMode */
-    if (viewModeRef.current === 'settings') return
-    /** 快捷键打开的面板不因鼠标移出而收起，只能通过快捷键关闭 */
-    if (expandSource.current === 'hotkey') return
-    handleCollapse()
-  }, [handleCollapse])
 
   /** 打开设置 */
   const handleOpenSettings = useCallback(() => {
@@ -236,9 +139,7 @@ export default function App() {
 
   /** 添加文件夹 */
   const handleAddFolder = useCallback(async () => {
-    isInteracting.current = true
     const result = await window.electronAPI.selectFolder()
-    isInteracting.current = false
     if (!result) return
 
     const { folderPath, files, folders } = result
@@ -336,40 +237,15 @@ export default function App() {
     setOpacity(value)
   }, [])
 
-  const handleShowFloatingIconWithHotkeyChange = useCallback(async (enable: boolean) => {
-    const value = await window.electronAPI.setShowFloatingIconWithHotkey(enable)
-    setShowFloatingIconWithHotkey(value)
-    showToast(value ? '已开启悬浮图标' : '已隐藏悬浮图标')
-  }, [showToast])
-
   const currentTab = tabs[activeTabIndex] || null
-  const totalFiles = tabs.reduce((sum, tab) => sum + tab.files.filter(f => !f.isDirectory).length, 0)
 
   return (
     <div className="relative w-full h-full overflow-hidden">
-      {/* icon layer（保持挂载，避免切换时闪烁/重建） */}
-      <div
-        className={`absolute inset-0 bg-transparent ${isInstantLayerSwitch ? 'transition-none' : 'transition-opacity duration-150'} ${
-          viewMode === 'icon' ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-        }`}
-      >
-        {showFloatingIconWithHotkey && (
-          <FloatingIcon
-            onExpand={handleExpand}
-            onOpenSettings={handleOpenSettings}
-            fileCount={totalFiles}
-            folderCount={tabs.length}
-          />
-        )}
-      </div>
-
       {/* expanded layer */}
       <div
-        className={`absolute inset-0 flex flex-col overflow-hidden bg-mac-bg ${isInstantLayerSwitch ? 'transition-none' : 'transition-opacity duration-150'} ${
+        className={`absolute inset-0 flex flex-col overflow-hidden bg-mac-bg transition-opacity duration-150 ${
           viewMode === 'expanded' ? 'opacity-100 pointer-events-auto expand-enter' : 'opacity-0 pointer-events-none'
         }`}
-        onMouseEnter={handleExpandedMouseEnter}
-        onMouseLeave={handleExpandedMouseLeave}
       >
         <TitleBar
           alwaysOnTop={alwaysOnTop}
@@ -377,7 +253,7 @@ export default function App() {
           onTogglePin={handleTogglePin}
           onToggleTheme={handleToggleTheme}
           onOpenSettings={handleOpenSettings}
-          onMinimize={() => setViewMode('icon')}
+          onMinimize={() => window.electronAPI.windowMinimize()}
           onClose={() => window.electronAPI.windowClose()}
         />
 
@@ -407,7 +283,7 @@ export default function App() {
 
       {/* settings layer */}
       <div
-        className={`absolute inset-0 overflow-hidden bg-mac-bg ${isInstantLayerSwitch ? 'transition-none' : 'transition-opacity duration-150'} ${
+        className={`absolute inset-0 overflow-hidden bg-mac-bg transition-opacity duration-150 ${
           viewMode === 'settings' ? 'opacity-100 pointer-events-auto expand-enter' : 'opacity-0 pointer-events-none'
         }`}
       >
@@ -417,13 +293,11 @@ export default function App() {
           autoLaunch={autoLaunch}
           opacity={opacity}
           theme={theme}
-          showFloatingIconWithHotkey={showFloatingIconWithHotkey}
           onHotkeyChange={handleHotkeyChange}
           onAlwaysOnTopChange={handleAlwaysOnTopChange}
           onAutoLaunchChange={handleAutoLaunchChange}
           onOpacityChange={handleOpacityChange}
           onThemeChange={handleThemeChange}
-          onShowFloatingIconWithHotkeyChange={handleShowFloatingIconWithHotkeyChange}
           onClose={handleCloseSettings}
         />
       </div>

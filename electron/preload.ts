@@ -30,13 +30,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setActiveTab: (index: number) => ipcRenderer.invoke('set-active-tab', index),
   setTheme: (theme: 'light' | 'dark') => ipcRenderer.invoke('set-theme', theme),
   setHotkey: (hotkey: string) => ipcRenderer.invoke('set-hotkey', hotkey),
-  setWindowMode: (mode: 'icon' | 'expanded') => ipcRenderer.invoke('set-window-mode', mode),
   setAlwaysOnTop: (enable: boolean) => ipcRenderer.invoke('set-always-on-top', enable),
   setAutoLaunch: (enable: boolean) => ipcRenderer.invoke('set-auto-launch', enable),
   setOpacity: (opacity: number) => ipcRenderer.invoke('set-opacity', opacity),
-  setShowFloatingIconWithHotkey: (enable: boolean) => ipcRenderer.invoke('set-show-floating-icon-with-hotkey', enable),
-  startIconDrag: (offsetX: number, offsetY: number) => ipcRenderer.invoke('start-icon-drag', offsetX, offsetY),
-  stopIconDrag: () => ipcRenderer.invoke('stop-icon-drag'),
 
   /** 事件监听 */
   onFolderUpdated: (callback: (data: { folderPath: string; files: any[] }) => void) => {

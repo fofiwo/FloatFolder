@@ -6,13 +6,11 @@ interface SettingsPanelProps {
   autoLaunch: boolean
   opacity: number
   theme: 'light' | 'dark'
-  showFloatingIconWithHotkey: boolean
   onHotkeyChange: (hotkey: string) => void
   onAlwaysOnTopChange: (enable: boolean) => void
   onAutoLaunchChange: (enable: boolean) => void
   onOpacityChange: (opacity: number) => void
   onThemeChange: (theme: 'light' | 'dark') => void
-  onShowFloatingIconWithHotkeyChange: (enable: boolean) => void
   onClose: () => void
 }
 
@@ -82,13 +80,11 @@ export default function SettingsPanel({
   autoLaunch,
   opacity,
   theme,
-  showFloatingIconWithHotkey,
   onHotkeyChange,
   onAlwaysOnTopChange,
   onAutoLaunchChange,
   onOpacityChange,
   onThemeChange,
-  onShowFloatingIconWithHotkeyChange,
   onClose,
 }: SettingsPanelProps) {
   const [isRecording, setIsRecording] = useState(false)
@@ -170,25 +166,6 @@ export default function SettingsPanel({
           </div>
 
           <div className="space-y-3">
-            {/* 显示悬浮图标 */}
-            <div className="flex items-center justify-between rounded-md border border-mac-border px-3 py-2 bg-mac-surface">
-              <div>
-                <div className="flex items-center gap-2 text-[12px] text-mac-text">
-                  <span>显示悬浮图标</span>
-                  <Tooltip text='关闭后悬浮图标将隐藏，可通过快捷键或系统托盘唤醒窗口。' />
-                </div>
-                <div className="text-[11px] text-mac-text-tertiary">关闭后可通过托盘或快捷键唤醒</div>
-              </div>
-              <button
-                onClick={() => onShowFloatingIconWithHotkeyChange(!showFloatingIconWithHotkey)}
-                className={`w-10 h-6 rounded-full p-0.5 transition-colors ${showFloatingIconWithHotkey ? 'bg-mac-accent' : 'bg-mac-hover'}`}
-                aria-label="切换悬浮图标显示"
-                title="切换悬浮图标显示"
-              >
-                <div className={`h-5 w-5 rounded-full bg-white transition-transform ${showFloatingIconWithHotkey ? 'translate-x-4' : 'translate-x-0'}`} />
-              </button>
-            </div>
-
             {/* 置顶 */}
             <div className="flex items-center justify-between rounded-md border border-mac-border px-3 py-2 bg-mac-surface">
               <div>
@@ -338,19 +315,15 @@ export default function SettingsPanel({
           <div className="space-y-2 text-[11px] text-mac-text-secondary leading-relaxed">
             <div className="flex items-start gap-2">
               <div className="w-1 h-1 rounded-full bg-mac-accent mt-1.5 flex-shrink-0" />
-              <span>鼠标悬停图标展开面板，移出自动收起</span>
+              <span>单击文件可复制，双击打开文件</span>
             </div>
             <div className="flex items-start gap-2">
               <div className="w-1 h-1 rounded-full bg-mac-accent mt-1.5 flex-shrink-0" />
-              <span>点击图标手动展开/收起</span>
+              <span>右键文件可显示更多操作</span>
             </div>
             <div className="flex items-start gap-2">
               <div className="w-1 h-1 rounded-full bg-mac-accent mt-1.5 flex-shrink-0" />
-              <span>右键图标打开设置</span>
-            </div>
-            <div className="flex items-start gap-2">
-              <div className="w-1 h-1 rounded-full bg-mac-accent mt-1.5 flex-shrink-0" />
-              <span>使用快捷键可全局唤醒面板</span>
+              <span>使用快捷键可全局唤醒/隐藏面板</span>
             </div>
           </div>
         </div>
