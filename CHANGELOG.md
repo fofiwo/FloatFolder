@@ -1,5 +1,23 @@
 # 更新日志
 
+## [1.7.4] - 2026-02-22
+
+### Fixed（fix）
+- 修复 Toast 通知在亮色模式下硬编码暗色背景导致的视觉冲突（改为主题感知变量）
+- 修复三级文本对比度不达标（亮色/暗色均低于 WCAG AA 4.5:1），opacity 从 0.3 提升至 0.45
+- 修复右键菜单快捷键文字在 hover 蓝色背景上不可读的问题（添加 group-hover 白色覆盖）
+- 修复图片预览弹出在亮色模式下与白色背景融为一体的问题（恢复主题感知 border）
+- 修复 Toast 勾选图标硬编码暗色绿色 #32d74b（改为 var(--mac-green)）
+- 修复 z-index 层级冲突：Preview(55) < Toast(60) < ContextMenu(100)
+- 修复 TabBar 活跃标签指示条被 border 截断（添加 overflow-y-visible）
+- 修复 FileItem 缩略图 alt 文本为空（改为文件名，提升无障碍性）
+
+### Changed（style）
+- 所有图标按钮添加 aria-label 属性（TitleBar、TabBar、FileList 排序按钮）
+- 统一全局微交互过渡时间为 150ms（TitleBar/TabBar/FileList/文件行）
+- 添加 prefers-reduced-motion 全局支持，禁用所有动画和过渡
+- 清理未使用的呼吸灯动画死代码（breathing-glow、breathing-ring、pulse-dot）
+
 ## [1.7.3] - 2026-02-22
 
 ### Fixed（fix）

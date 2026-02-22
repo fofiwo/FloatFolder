@@ -45,7 +45,7 @@ export default function TabBar({ tabs, activeIndex, onTabChange, onTabRemove, on
   }, [dragIndex, dropIndex, onTabReorder])
 
   return (
-    <div className="flex items-center gap-1 px-3 py-1.5 border-b border-mac-border flex-shrink-0 overflow-x-auto no-drag bg-mac-bg"
+    <div className="relative flex items-center gap-1 px-3 py-1.5 border-b border-mac-border flex-shrink-0 overflow-x-auto overflow-y-visible no-drag bg-mac-bg"
       style={{ scrollbarWidth: 'none' }}>
       {tabs.map((tab, index) => (
         (() => {

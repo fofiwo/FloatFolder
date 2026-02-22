@@ -65,7 +65,7 @@ export default memo(function FileItem({
       {/* 文件图标/缩略图 */}
       {isImage && thumbnail ? (
         <div className="w-8 h-8 flex-shrink-0 rounded-[5px] overflow-hidden bg-mac-overlay shadow-sm">
-          <img src={thumbnail} alt="" className="w-full h-full object-cover" />
+          <img src={thumbnail} alt={file.name} className="w-full h-full object-cover" />
         </div>
       ) : (
         <div className="w-8 h-8 flex items-center justify-center flex-shrink-0 rounded-[5px] bg-mac-overlay">
