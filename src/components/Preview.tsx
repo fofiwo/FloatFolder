@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, memo, useRef, useImperativeHandle, forwardRef } from 'react'
 import type { FileInfo } from '../types'
 
 interface PreviewProps {
@@ -7,12 +7,29 @@ interface PreviewProps {
   y: number
 }
 
-export default function Preview({ file, x, y }: PreviewProps) {
+export interface PreviewHandle {
+  updatePosition: (x: number, y: number) => void
+}
+
+/** 预览组件：使用 getSmallThumbnail 替代全尺寸 getThumbnail，加载更快 */
+const Preview = memo(forwardRef<PreviewHandle, PreviewProps>(function Preview({ file, x, y }, ref) {
   const [thumbnail, setThumbnail] = useState<string | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  /** 暴露 updatePosition 方法，父组件通过 ref 直接操作 DOM 避免 setState */
+  useImperativeHandle(ref, () => ({
+    updatePosition: (nx: number, ny: number) => {
+      if (containerRef.current) {
+        containerRef.current.style.left = `${Math.min(nx, window.innerWidth - 240)}px`
+        containerRef.current.style.top = `${Math.min(ny, window.innerHeight - 240)}px`
+      }
+    }
+  }), [])
 
   useEffect(() => {
     let cancelled = false
-    window.electronAPI.getThumbnail(file.path).then((data) => {
+    /** 使用 220px 缩略图而非全尺寸图片，大幅减少 IPC 传输量 */
+    window.electronAPI.getSmallThumbnail(file.path, 220).then((data) => {
       if (!cancelled && data) setThumbnail(data)
     })
     return () => { cancelled = true }
@@ -22,6 +39,7 @@ export default function Preview({ file, x, y }: PreviewProps) {
 
   return (
     <div
+      ref={containerRef}
       className="fixed z-[55] rounded-mac-lg overflow-hidden shadow-2xl pointer-events-none"
       style={{
         left: Math.min(x, window.innerWidth - 240),
@@ -42,4 +60,6 @@ export default function Preview({ file, x, y }: PreviewProps) {
       </div>
     </div>
   )
-}
+}))
+
+export default Preview

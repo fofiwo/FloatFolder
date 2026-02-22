@@ -57,11 +57,24 @@ function createWindow() {
   const bounds = store.get('windowBounds') as { x: number; y: number; width: number; height: number }
   const opacity = store.get('opacity') as number
 
+  /** 获取主屏幕，计算居中位置 */
+  const primaryDisplay = screen.getPrimaryDisplay()
+  const workArea = primaryDisplay.workArea
+  const defaultWidth = bounds?.width ?? 400
+  const defaultHeight = bounds?.height ?? 500
+  const centerX = Math.round(workArea.x + (workArea.width - defaultWidth) / 2)
+  const centerY = Math.round(workArea.y + (workArea.height - defaultHeight) / 2)
+
+  /** 如果是第一次启动（位置为默认值100,100），则居中显示 */
+  const isFirstLaunch = bounds?.x === 100 && bounds?.y === 100
+  const windowX = isFirstLaunch ? centerX : (bounds?.x ?? centerX)
+  const windowY = isFirstLaunch ? centerY : (bounds?.y ?? centerY)
+
   mainWindow = new BrowserWindow({
-    x: bounds.x,
-    y: bounds.y,
-    width: bounds.width,
-    height: bounds.height,
+    x: windowX,
+    y: windowY,
+    width: defaultWidth,
+    height: defaultHeight,
     minWidth: 300,
     minHeight: 350,
     frame: false,

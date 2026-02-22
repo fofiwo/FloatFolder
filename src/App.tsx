@@ -32,25 +32,17 @@ export default function App() {
     }
   }, [theme])
 
-  /** 初始化：加载已保存的文件夹 */
+  /** 初始化：一次 IPC 获取设置 + 所有文件夹数据 */
   useEffect(() => {
     async function init() {
-      const settings = await window.electronAPI.getSettings()
+      const { settings, tabs: loadedTabs } = await window.electronAPI.getInitData()
       setAlwaysOnTop(settings.alwaysOnTop)
       setAutoLaunch(settings.autoLaunch)
       setOpacity(settings.opacity)
       setTheme(settings.theme || 'light')
       setHotkey(settings.hotkey || '')
 
-      const folders = await window.electronAPI.getFolders()
-      if (folders.length > 0) {
-        const loadedTabs: FolderTab[] = await Promise.all(
-          folders.map(async (folderPath) => {
-            const files = await window.electronAPI.getFolderContents(folderPath)
-            const name = folderPath.split('\\').pop() || folderPath.split('/').pop() || folderPath
-            return { path: folderPath, name, files }
-          })
-        )
+      if (loadedTabs.length > 0) {
         setTabs(loadedTabs)
         setActiveTabIndex(Math.min(settings.activeTab, loadedTabs.length - 1))
       }
