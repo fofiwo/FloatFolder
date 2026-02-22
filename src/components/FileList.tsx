@@ -79,6 +79,15 @@ export default function FileList({ files, folderPath, showToast }: FileListProps
   const handleDragStart = useCallback(
     (e: React.DragEvent, file: FileInfo) => {
       e.preventDefault()
+
+      /** 立即关闭图片预览 */
+      if (previewTimer.current) {
+        clearTimeout(previewTimer.current)
+        previewTimer.current = null
+      }
+      previewFileRef.current = null
+      setPreviewFile(null)
+
       if (selectedPaths.has(file.path) && selectedPaths.size > 1) {
         window.electronAPI.startDrag(Array.from(selectedPaths))
       } else {
