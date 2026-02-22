@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, memo } from 'react'
 import type { FolderTab } from '../types'
 
 interface TabBarProps {
@@ -10,7 +10,7 @@ interface TabBarProps {
   onTabReorder: (fromIndex: number, toIndex: number) => void
 }
 
-export default function TabBar({ tabs, activeIndex, onTabChange, onTabRemove, onAddTab, onTabReorder }: TabBarProps) {
+export default memo(function TabBar({ tabs, activeIndex, onTabChange, onTabRemove, onAddTab, onTabReorder }: TabBarProps) {
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [dropIndex, setDropIndex] = useState<number | null>(null)
   const dragStartX = useRef(0)
@@ -108,4 +108,4 @@ export default function TabBar({ tabs, activeIndex, onTabChange, onTabRemove, on
       </button>
     </div>
   )
-}
+})

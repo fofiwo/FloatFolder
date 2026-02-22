@@ -1,3 +1,5 @@
+import { memo } from 'react'
+
 interface TitleBarProps {
   alwaysOnTop: boolean
   theme: 'light' | 'dark'
@@ -8,7 +10,7 @@ interface TitleBarProps {
   onClose: () => void
 }
 
-export default function TitleBar({ alwaysOnTop, theme, onTogglePin, onToggleTheme, onOpenSettings, onMinimize, onClose }: TitleBarProps) {
+export default memo(function TitleBar({ alwaysOnTop, theme, onTogglePin, onToggleTheme, onOpenSettings, onMinimize, onClose }: TitleBarProps) {
   return (
     <div className="flex items-center h-11 px-4 flex-shrink-0 border-b border-mac-border transition-colors duration-150">
       {/* 左侧：macOS 红绿灯按钮 */}
@@ -53,4 +55,4 @@ export default function TitleBar({ alwaysOnTop, theme, onTogglePin, onToggleThem
       <div className="w-[100px]" />
     </div>
   )
-}
+})

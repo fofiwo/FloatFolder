@@ -1,9 +1,10 @@
-import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
+import { useState, useCallback, useRef, useEffect, useMemo, memo } from 'react'
 import type { FileInfo } from '../types'
 import { formatFileSize } from '../lib/utils'
 import FileItem from './FileItem'
 import ContextMenu from './ContextMenu'
 import Preview from './Preview'
+import type { PreviewHandle } from './Preview'
 
 interface FileListProps {
   files: FileInfo[]
@@ -17,11 +18,12 @@ interface ContextMenuState {
   file: FileInfo
 }
 
-export default function FileList({ files, folderPath, showToast }: FileListProps) {
+export default memo(function FileList({ files, folderPath, showToast }: FileListProps) {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
   const contextMenuOpenRef = useRef(false)
   const [previewFile, setPreviewFile] = useState<{ file: FileInfo; x: number; y: number } | null>(null)
   const previewFileRef = useRef<FileInfo | null>(null)
+  const previewRef = useRef<PreviewHandle>(null)
   const mousePos = useRef<{ x: number; y: number }>({ x: 0, y: 0 })
   const [searchQuery, setSearchQuery] = useState('')
   const [sortMode, setSortMode] = useState<'name' | 'time'>('name')
@@ -31,6 +33,13 @@ export default function FileList({ files, folderPath, showToast }: FileListProps
   const isDraggingRef = useRef(false)
   const previewTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const ctrlPressed = useRef(false)
+
+  /** 文件路径 -> FileInfo 映射，用于 data-path 事件委托模式 */
+  const fileMap = useMemo(() => {
+    const map = new Map<string, FileInfo>()
+    files.forEach((f) => map.set(f.path, f))
+    return map
+  }, [files])
 
   /** 同步 selectedPaths 到 ref，供 mousedown 闭包读取最新值 */
   useEffect(() => { selectedPathsRef.current = selectedPaths }, [selectedPaths])
@@ -210,13 +219,13 @@ export default function FileList({ files, folderPath, showToast }: FileListProps
     }, 200)
   }, [])
 
-  /** 鼠标移动时实时更新预览位置 */
+  /** 鼠标移动时通过 ref 直接更新 DOM 位置，避免 setState 触发整棵树重渲染 */
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     mousePos.current = { x: e.clientX, y: e.clientY }
     if (ctrlPressed.current) return
     if (contextMenuOpenRef.current) return
-    if (previewFileRef.current) {
-      setPreviewFile((prev) => prev ? { ...prev, x: e.clientX + 16, y: e.clientY + 8 } : null)
+    if (previewFileRef.current && previewRef.current) {
+      previewRef.current.updatePosition(e.clientX + 16, e.clientY + 8)
     }
   }, [])
 
@@ -351,8 +360,8 @@ export default function FileList({ files, folderPath, showToast }: FileListProps
         <ContextMenu x={contextMenu.x} y={contextMenu.y} onAction={handleMenuAction} onClose={handleCloseContextMenu} />
       )}
       {previewFile && (
-        <Preview file={previewFile.file} x={previewFile.x} y={previewFile.y} />
+        <Preview ref={previewRef} file={previewFile.file} x={previewFile.x} y={previewFile.y} />
       )}
     </div>
   )
-}
+})

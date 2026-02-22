@@ -1,5 +1,24 @@
 # 更新日志
 
+## [2.0.0] - 2026-02-22
+
+### Changed（refactor）
+- **主进程性能优化**
+  - 文件夹内容读取改为异步（fs/promises），不再阻塞主进程
+  - chokidar 文件监听添加 200ms 防抖，多次文件变化只触发一次更新
+  - 文件复制（copy-file）改为异步 exec，不再阻塞主进程
+  - 窗口位置保存添加 300ms 防抖，减少频繁磁盘写入
+  - 缩略图添加内存缓存（LRU 200 条），命中缓存时跳过磁盘读取和编码
+  - 缩略图读取改为异步 fs/promises
+  - 新增合并初始化接口 get-init-data，一次 IPC 返回设置 + 所有文件夹数据（原需多次 IPC 往返）
+
+- **渲染进程性能优化**
+  - Preview 组件使用 220px 缩略图替代全尺寸图片，大幅减少 IPC 传输量
+  - 图片预览鼠标跟随改为 ref 直接操作 DOM 定位，避免 setState 触发整棵树重渲染
+  - TitleBar、TabBar、FileList 组件添加 React.memo 包裹，减少不必要的重渲染
+  - App.tsx 所有回调函数用 useCallback 稳定引用，配合子组件 memo 生效
+  - FileList 添加 fileMap 用于快速文件查找
+
 ## [1.9.0] - 2026-02-22
 
 ### Added（新增）

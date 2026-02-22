@@ -195,6 +195,16 @@ export default function App() {
     window.electronAPI.setActiveTab(index)
   }, [])
 
+  /** 窗口最小化 */
+  const handleMinimize = useCallback(() => {
+    window.electronAPI.windowMinimize()
+  }, [])
+
+  /** 窗口关闭（隐藏到托盘） */
+  const handleClose = useCallback(() => {
+    window.electronAPI.windowClose()
+  }, [])
+
   /** 切换置顶 */
   const handleTogglePin = useCallback(async () => {
     const newValue = await window.electronAPI.toggleAlwaysOnTop()
@@ -245,8 +255,8 @@ export default function App() {
           onTogglePin={handleTogglePin}
           onToggleTheme={handleToggleTheme}
           onOpenSettings={handleOpenSettings}
-          onMinimize={() => window.electronAPI.windowMinimize()}
-          onClose={() => window.electronAPI.windowClose()}
+          onMinimize={handleMinimize}
+          onClose={handleClose}
         />
 
         {tabs.length > 0 && (
