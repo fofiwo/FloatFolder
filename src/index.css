@@ -12,23 +12,30 @@ html, body, #root {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: transparent;
+  background: #1e1e1e;
   user-select: none;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/** 自定义滚动条 */
+/** macOS 风格滚动条 */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
+  background: transparent;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: content-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.22);
+  background-clip: content-box;
 }
 
 /** 拖拽区域 */
@@ -39,44 +46,76 @@ html, body, #root {
   -webkit-app-region: no-drag;
 }
 
-/** 文件拖拽样式 */
-.file-item {
-  transition: all 0.15s ease;
+/** macOS 风格文件行 */
+.file-row {
+  transition: background-color 0.12s ease;
+  border-radius: 6px;
 }
-.file-item:hover {
-  background: rgba(255, 255, 255, 0.06);
+.file-row:hover {
+  background: rgba(255, 255, 255, 0.055);
 }
 .file-item:active {
   background: rgba(255, 255, 255, 0.1);
 }
+.file-item-selected {
+  background: rgba(96, 165, 250, 0.15) !important;
+  box-shadow: inset 0 0 0 1px rgba(96, 165, 250, 0.3);
+}
+.file-row.selected {
+  background: rgba(10, 132, 255, 0.2);
+}
+
+/** macOS 风格红绿灯按钮 */
+.traffic-btn {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.15s ease;
+  position: relative;
+}
+.traffic-btn svg {
+  opacity: 0;
+  transition: opacity 0.1s ease;
+}
+.traffic-group:hover .traffic-btn svg {
+  opacity: 1;
+}
 
 /** Toast 动画 */
 @keyframes toast-in {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translate(-50%, 8px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
 }
 @keyframes toast-out {
-  from { opacity: 1; transform: translateY(0); }
-  to { opacity: 0; transform: translateY(10px); }
+  from { opacity: 1; transform: translate(-50%, 0); }
+  to { opacity: 0; transform: translate(-50%, 8px); }
 }
 .toast-enter {
-  animation: toast-in 0.2s ease forwards;
+  animation: toast-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 .toast-exit {
   animation: toast-out 0.2s ease forwards;
 }
 
-/** 缩略图预览弹窗 */
-@keyframes preview-in {
-  from { opacity: 0; transform: scale(0.95); }
+/** 弹出动画 */
+@keyframes pop-in {
+  from { opacity: 0; transform: scale(0.96); }
   to { opacity: 1; transform: scale(1); }
 }
-.preview-popup {
-  animation: preview-in 0.15s ease forwards;
+.pop-in {
+  animation: pop-in 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/** Tab 添加按钮旋转动画 */
-@keyframes spin-once {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(90deg); }
+/** macOS 风格聚焦环 */
+.mac-focus:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.35);
+}
+
+/** 平滑过渡 */
+.transition-mac {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }

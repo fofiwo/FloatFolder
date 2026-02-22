@@ -1,6 +1,6 @@
-import { memo } from 'react'
+import { memo, useState, useEffect, useRef } from 'react'
 import type { FileInfo } from '../types'
-import { getFileIcon, formatFileSize, formatTime } from '../lib/utils'
+import { getFileIcon, formatFileSize, formatTime, isImageFile } from '../lib/utils'
 
 interface FileItemProps {
   file: FileInfo
@@ -21,9 +21,35 @@ export default memo(function FileItem({
   onMouseEnter,
   onMouseLeave
 }: FileItemProps) {
+  const [thumbnail, setThumbnail] = useState<string | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const isImage = isImageFile(file.extension)
+
+  /** 懒加载缩略图：仅在元素进入视口时加载 */
+  useEffect(() => {
+    if (!isImage || !containerRef.current) return
+    let cancelled = false
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          window.electronAPI.getSmallThumbnail(file.path, 48).then((data) => {
+            if (!cancelled && data) setThumbnail(data)
+          })
+          observer.disconnect()
+        }
+      },
+      { threshold: 0.1 }
+    )
+
+    observer.observe(containerRef.current)
+    return () => { cancelled = true; observer.disconnect() }
+  }, [file.path, isImage])
+
   return (
     <div
-      className="file-item flex items-center gap-2.5 px-3 py-1.5 mx-1 rounded-md cursor-pointer group"
+      ref={containerRef}
+      className="file-row flex items-center gap-3 px-3 py-[7px] mx-1 cursor-pointer group"
       onClick={onClick}
       onDoubleClick={onDoubleClick}
       onContextMenu={onContextMenu}
@@ -33,19 +59,28 @@ export default memo(function FileItem({
       onMouseLeave={onMouseLeave}
       title={`${file.name}\n大小: ${formatFileSize(file.size)}\n修改时间: ${formatTime(file.modifiedTime)}\n\n单击复制 | 双击打开 | 拖拽移动`}
     >
-      {/* 文件图标 */}
-      <div className="w-5 h-5 flex items-center justify-center flex-shrink-0 text-white/50">
-        {getFileIcon(file)}
-      </div>
+      {/* 文件图标/缩略图 */}
+      {isImage && thumbnail ? (
+        <div className="w-8 h-8 flex-shrink-0 rounded-[5px] overflow-hidden bg-white/5 shadow-sm">
+          <img src={thumbnail} alt="" className="w-full h-full object-cover" />
+        </div>
+      ) : (
+        <div className="w-8 h-8 flex items-center justify-center flex-shrink-0 rounded-[5px] bg-white/[0.04]">
+          {getFileIcon(file)}
+        </div>
+      )}
 
-      {/* 文件名 */}
+      {/* 文件名 + 大小 */}
       <div className="flex-1 min-w-0">
-        <span className="text-xs text-white/75 truncate block">{file.name}</span>
+        <span className="text-[13px] text-mac-text truncate block leading-tight">{file.name}</span>
+        <span className="text-[11px] text-mac-text-tertiary leading-tight">
+          {file.isDirectory ? '文件夹' : formatFileSize(file.size)}
+        </span>
       </div>
 
-      {/* 文件大小 */}
-      <span className="text-[10px] text-white/20 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-        {file.isDirectory ? '' : formatFileSize(file.size)}
+      {/* 修改时间（hover 显示） */}
+      <span className="text-[11px] text-mac-text-tertiary flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+        {formatTime(file.modifiedTime).split(' ')[0]}
       </span>
     </div>
   )

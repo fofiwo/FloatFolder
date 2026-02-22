@@ -11,12 +11,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   /** 文件操作 */
   openFile: (filePath: string) => ipcRenderer.invoke('open-file', filePath),
   showInExplorer: (filePath: string) => ipcRenderer.invoke('show-in-explorer', filePath),
-  copyFile: (filePath: string) => ipcRenderer.invoke('copy-file', filePath),
+  copyFile: (filePaths: string | string[]) => ipcRenderer.invoke('copy-file', filePaths),
   copyPath: (filePath: string) => ipcRenderer.invoke('copy-path', filePath),
   getThumbnail: (filePath: string) => ipcRenderer.invoke('get-thumbnail', filePath),
+  getSmallThumbnail: (filePath: string, maxSize?: number) => ipcRenderer.invoke('get-small-thumbnail', filePath, maxSize),
 
   /** 原生拖拽 */
-  startDrag: (filePath: string) => ipcRenderer.send('ondragstart', filePath),
+  startDrag: (filePaths: string | string[]) => ipcRenderer.send('ondragstart', filePaths),
 
   /** 窗口操作 */
   windowMinimize: () => ipcRenderer.invoke('window-minimize'),

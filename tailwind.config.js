@@ -7,16 +7,30 @@ export default {
   theme: {
     extend: {
       colors: {
-        'glass': {
-          'bg': 'rgba(30, 30, 40, 0.85)',
-          'border': 'rgba(255, 255, 255, 0.1)',
-          'hover': 'rgba(255, 255, 255, 0.05)',
-          'active': 'rgba(255, 255, 255, 0.08)',
+        mac: {
+          bg: '#1e1e1e',
+          surface: '#2a2a2c',
+          elevated: '#323234',
+          hover: '#3a3a3c',
+          border: 'rgba(255,255,255,0.08)',
+          'border-strong': 'rgba(255,255,255,0.14)',
+          accent: '#0a84ff',
+          'accent-hover': '#409cff',
+          red: '#ff453a',
+          yellow: '#ffd60a',
+          green: '#32d74b',
+          text: 'rgba(255,255,255,0.88)',
+          'text-secondary': 'rgba(255,255,255,0.55)',
+          'text-tertiary': 'rgba(255,255,255,0.3)',
         }
       },
-      backdropBlur: {
-        'glass': '20px'
-      }
+      borderRadius: {
+        'mac': '10px',
+        'mac-lg': '14px',
+      },
+      fontFamily: {
+        sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Display"', '"SF Pro Text"', '"Segoe UI"', 'Roboto', 'sans-serif'],
+      },
     },
   },
   plugins: [],

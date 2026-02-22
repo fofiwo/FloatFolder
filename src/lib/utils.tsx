@@ -1,5 +1,13 @@
 import type { FileInfo } from '../types'
 
+/** 图片文件扩展名 */
+const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp', 'svg', 'ico']
+
+/** 判断是否为图片文件 */
+export function isImageFile(ext: string): boolean {
+  return IMAGE_EXTENSIONS.includes(ext)
+}
+
 /** 文件大小格式化 */
 export function formatFileSize(bytes: number): string {
   if (bytes === 0) return '0 B'

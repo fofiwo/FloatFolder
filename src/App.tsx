@@ -119,8 +119,7 @@ export default function App() {
   const currentTab = tabs[activeTabIndex] || null
 
   return (
-    <div className="w-full h-full flex flex-col rounded-xl overflow-hidden border border-glass-border"
-      style={{ background: 'rgba(25, 25, 35, 0.92)', backdropFilter: 'blur(20px)' }}>
+    <div className="w-full h-full flex flex-col overflow-hidden bg-[#191923]">
       <TitleBar
         alwaysOnTop={alwaysOnTop}
         onTogglePin={handleTogglePin}

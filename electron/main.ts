@@ -1,5 +1,6 @@
 import { app, BrowserWindow, ipcMain, Tray, Menu, dialog, shell, nativeImage, clipboard } from 'electron'
 import path from 'path'
+import { execSync } from 'child_process'
 import fs from 'fs'
 import chokidar from 'chokidar'
 import Store from 'electron-store'
@@ -26,19 +27,19 @@ const isDev = !!VITE_DEV_SERVER_URL
 function createWindow() {
   const bounds = store.get('windowBounds') as { x: number; y: number; width: number; height: number }
   const alwaysOnTop = store.get('alwaysOnTop') as boolean
-  const opacity = store.get('opacity') as number
 
   mainWindow = new BrowserWindow({
     ...bounds,
     minWidth: 300,
     minHeight: 350,
     frame: false,
-    transparent: true,
+    transparent: false,
     resizable: true,
     alwaysOnTop,
     skipTaskbar: false,
-    opacity: opacity,
-    icon: path.join(__dirname, '../public/icon.png'),
+    backgroundColor: '#191923',
+    roundedCorners: true,
+    icon: path.join(__dirname, '../public/icon.svg'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -47,8 +48,15 @@ function createWindow() {
   })
 
   if (VITE_DEV_SERVER_URL) {
-    mainWindow.loadURL(VITE_DEV_SERVER_URL)
-    mainWindow.webContents.openDevTools({ mode: 'detach' })
+    /** 带重试的加载机制，解决 Vite 未就绪的时序问题 */
+    const loadWithRetry = (retries = 20) => {
+      mainWindow!.loadURL(VITE_DEV_SERVER_URL).catch(() => {
+        if (retries > 0) {
+          setTimeout(() => loadWithRetry(retries - 1), 500)
+        }
+      })
+    }
+    loadWithRetry()
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))
   }
@@ -74,7 +82,7 @@ function saveWindowBounds() {
 
 /** 创建系统托盘 */
 function createTray() {
-  const iconPath = path.join(__dirname, '../public/icon.png')
+  const iconPath = path.join(__dirname, '../public/icon.svg')
   let trayIcon: nativeImage
 
   if (fs.existsSync(iconPath)) {
@@ -260,11 +268,14 @@ ipcMain.handle('show-in-explorer', (_event, filePath: string) => {
   shell.showItemInFolder(filePath)
 })
 
-/** 复制文件到剪贴板 */
-ipcMain.handle('copy-file', (_event, filePath: string) => {
+/** 复制文件到剪贴板（支持单个或多个文件） */
+ipcMain.handle('copy-file', (_event, filePaths: string | string[]) => {
   try {
-    /** Windows: 将文件路径写入剪贴板 */
-    clipboard.writeBuffer('FileNameW', Buffer.from(filePath + '\0', 'ucs2'))
+    const paths = Array.isArray(filePaths) ? filePaths : [filePaths]
+    const addLines = paths.map((p) => `$f.Add("${p.replace(/"/g, '`"')}")`).join('; ')
+    const psScript = `Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Collections.Specialized.StringCollection; ${addLines}; [System.Windows.Forms.Clipboard]::SetFileDropList($f)`
+    const encoded = Buffer.from(psScript, 'utf16le').toString('base64')
+    execSync(`powershell -NoProfile -EncodedCommand ${encoded}`, { timeout: 5000, windowsHide: true })
     return true
   } catch (err) {
     console.error('复制文件失败:', err)
@@ -278,13 +289,24 @@ ipcMain.handle('copy-path', (_event, filePath: string) => {
   return true
 })
 
-/** 原生文件拖拽 */
-ipcMain.on('ondragstart', (event, filePath: string) => {
-  const iconPath = nativeImage.createFromPath(filePath).resize({ width: 32, height: 32 })
-  event.sender.startDrag({
-    file: filePath,
-    icon: iconPath.isEmpty() ? getDefaultDragIcon() : iconPath
-  })
+/** 原生文件拖拽（支持单个或多个文件） */
+ipcMain.on('ondragstart', (event, filePaths: string | string[]) => {
+  const paths = Array.isArray(filePaths) ? filePaths : [filePaths]
+  const icon = getDefaultDragIcon()
+
+  if (paths.length === 1) {
+    const customIcon = nativeImage.createFromPath(paths[0]).resize({ width: 32, height: 32 })
+    event.sender.startDrag({
+      file: paths[0],
+      icon: customIcon.isEmpty() ? icon : customIcon
+    })
+  } else {
+    event.sender.startDrag({
+      file: '',
+      files: paths,
+      icon
+    })
+  }
 })
 
 /** 获取默认拖拽图标 */
@@ -340,6 +362,37 @@ ipcMain.handle('get-thumbnail', async (_event, filePath: string) => {
     const base64 = data.toString('base64')
     const mime = ext === '.svg' ? 'image/svg+xml' : `image/${ext.slice(1)}`
     return `data:${mime};base64,${base64}`
+  } catch {
+    return null
+  }
+})
+
+/** 获取缩略图（指定尺寸，用于列表/卡片内联展示） */
+ipcMain.handle('get-small-thumbnail', async (_event, filePath: string, maxSize: number = 64) => {
+  try {
+    const ext = path.extname(filePath).toLowerCase()
+    const imageExts = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp', '.ico']
+    if (!imageExts.includes(ext)) return null
+
+    /** SVG 直接返回原始数据（体积小） */
+    if (ext === '.svg') {
+      const data = fs.readFileSync(filePath)
+      return `data:image/svg+xml;base64,${data.toString('base64')}`
+    }
+
+    /** 使用 nativeImage 缩放生成小缩略图 */
+    const img = nativeImage.createFromPath(filePath)
+    if (img.isEmpty()) return null
+
+    const size = img.getSize()
+    const scale = Math.min(maxSize / size.width, maxSize / size.height, 1)
+    const resized = img.resize({
+      width: Math.round(size.width * scale),
+      height: Math.round(size.height * scale),
+      quality: 'good'
+    })
+
+    return `data:image/png;base64,${resized.toPNG().toString('base64')}`
   } catch {
     return null
   }

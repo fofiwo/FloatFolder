@@ -31,10 +31,11 @@ export interface ElectronAPI {
   removeFolder: (folderPath: string) => Promise<string[]>
   openFile: (filePath: string) => Promise<void>
   showInExplorer: (filePath: string) => Promise<void>
-  copyFile: (filePath: string) => Promise<boolean>
+  copyFile: (filePaths: string | string[]) => Promise<boolean>
   copyPath: (filePath: string) => Promise<boolean>
   getThumbnail: (filePath: string) => Promise<string | null>
-  startDrag: (filePath: string) => void
+  getSmallThumbnail: (filePath: string, maxSize?: number) => Promise<string | null>
+  startDrag: (filePaths: string | string[]) => void
   windowMinimize: () => Promise<void>
   windowClose: () => Promise<void>
   toggleAlwaysOnTop: () => Promise<boolean>

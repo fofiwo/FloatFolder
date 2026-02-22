@@ -5,6 +5,12 @@ import electronRenderer from 'vite-plugin-electron-renderer'
 import path from 'path'
 
 export default defineConfig({
+  server: {
+    /** 强制 IPv4 监听，避免 IPv6/IPv4 不匹配导致 Electron 连接失败 */
+    host: '127.0.0.1',
+    port: 5173,
+    strictPort: true
+  },
   plugins: [
     react(),
     electron([
