@@ -2,6 +2,9 @@ import { contextBridge, ipcRenderer } from 'electron'
 
 /** 暴露安全的 API 给渲染进程 */
 contextBridge.exposeInMainWorld('electronAPI', {
+  /** 合并初始化（一次 IPC 获取设置 + 所有文件夹数据） */
+  getInitData: () => ipcRenderer.invoke('get-init-data'),
+
   /** 文件夹操作 */
   selectFolder: () => ipcRenderer.invoke('select-folder'),
   getFolders: () => ipcRenderer.invoke('get-folders'),

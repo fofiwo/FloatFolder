@@ -28,6 +28,7 @@ export interface AppSettings {
 
 /** Electron API 类型 */
 export interface ElectronAPI {
+  getInitData: () => Promise<{ settings: AppSettings; tabs: FolderTab[] }>
   selectFolder: () => Promise<{ folderPath: string; files: FileInfo[]; folders: string[] } | null>
   getFolders: () => Promise<string[]>
   getFolderContents: (folderPath: string) => Promise<FileInfo[]>

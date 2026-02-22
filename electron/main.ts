@@ -1,7 +1,8 @@
 import { app, BrowserWindow, ipcMain, Tray, Menu, dialog, shell, nativeImage, clipboard, globalShortcut, screen } from 'electron'
 import path from 'path'
-import { execSync } from 'child_process'
+import { execSync, exec } from 'child_process'
 import fs from 'fs'
+import fsPromises from 'fs/promises'
 import chokidar from 'chokidar'
 import Store from 'electron-store'
 
@@ -23,6 +24,14 @@ let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
 let registeredHotkey: string | null = null
 const watchers: Map<string, chokidar.FSWatcher> = new Map()
+const watcherDebounceTimers: Map<string, ReturnType<typeof setTimeout>> = new Map()
+
+/** 缩略图内存缓存：key = filePath:maxSize, value = { data, mtime } */
+const thumbnailCache: Map<string, { data: string; mtime: number }> = new Map()
+const THUMBNAIL_CACHE_MAX = 200
+
+/** 窗口位置保存防抖定时器 */
+let saveWindowBoundsTimer: ReturnType<typeof setTimeout> | null = null
 
 function sendSettingsChanged(
   patch: Partial<{
@@ -249,8 +258,12 @@ function registerGlobalHotkey(hotkey: string): boolean {
 
 function saveWindowBounds() {
   if (!mainWindow) return
-  const bounds = mainWindow.getBounds()
-  store.set('windowBounds', bounds)
+  if (saveWindowBoundsTimer) clearTimeout(saveWindowBoundsTimer)
+  saveWindowBoundsTimer = setTimeout(() => {
+    if (!mainWindow) return
+    const bounds = mainWindow.getBounds()
+    store.set('windowBounds', bounds)
+  }, 300)
 }
 
 /** 创建系统托盘 */
@@ -286,7 +299,43 @@ function setAutoLaunch(enable: boolean) {
   })
 }
 
-/** 读取文件夹内容 */
+/** 读取文件夹内容（异步，不阻塞主进程） */
+async function readFolderContentsAsync(folderPath: string): Promise<FileInfo[]> {
+  try {
+    await fsPromises.access(folderPath)
+    const entries = await fsPromises.readdir(folderPath, { withFileTypes: true })
+    const results = await Promise.all(
+      entries
+        .filter((entry) => !entry.name.startsWith('.'))
+        .map(async (entry) => {
+          const fullPath = path.join(folderPath, entry.name)
+          try {
+            const stats = await fsPromises.stat(fullPath)
+            return {
+              name: entry.name,
+              path: fullPath,
+              isDirectory: entry.isDirectory(),
+              size: stats.size,
+              modifiedTime: stats.mtime.toISOString(),
+              extension: path.extname(entry.name).toLowerCase().slice(1)
+            }
+          } catch {
+            return null
+          }
+        })
+    )
+    return (results.filter(Boolean) as FileInfo[]).sort((a, b) => {
+      if (a.isDirectory && !b.isDirectory) return -1
+      if (!a.isDirectory && b.isDirectory) return 1
+      return a.name.localeCompare(b.name)
+    })
+  } catch (err) {
+    console.error('读取文件夹失败:', err)
+    return []
+  }
+}
+
+/** 同步版本（仅启动时快速加载用） */
 function readFolderContents(folderPath: string): FileInfo[] {
   try {
     if (!fs.existsSync(folderPath)) return []
@@ -336,11 +385,16 @@ function startWatching(folderPath: string) {
   })
 
   watcher.on('all', (_event, _filePath) => {
-    /** 防抖：延迟发送更新 */
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      const files = readFolderContents(folderPath)
-      mainWindow.webContents.send('folder-updated', { folderPath, files })
-    }
+    /** 防抖：200ms 内多次文件变化只触发一次更新 */
+    const existing = watcherDebounceTimers.get(folderPath)
+    if (existing) clearTimeout(existing)
+    watcherDebounceTimers.set(folderPath, setTimeout(async () => {
+      watcherDebounceTimers.delete(folderPath)
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        const files = await readFolderContentsAsync(folderPath)
+        mainWindow.webContents.send('folder-updated', { folderPath, files })
+      }
+    }, 200))
   })
 
   watchers.set(folderPath, watcher)
@@ -386,8 +440,8 @@ ipcMain.handle('get-folders', () => {
 })
 
 /** 获取文件夹内容 */
-ipcMain.handle('get-folder-contents', (_event, folderPath: string) => {
-  return readFolderContents(folderPath)
+ipcMain.handle('get-folder-contents', async (_event, folderPath: string) => {
+  return readFolderContentsAsync(folderPath)
 })
 
 /** 移除文件夹 */
@@ -409,19 +463,22 @@ ipcMain.handle('show-in-explorer', (_event, filePath: string) => {
   shell.showItemInFolder(filePath)
 })
 
-/** 复制文件到剪贴板（支持单个或多个文件） */
+/** 复制文件到剪贴板（支持单个或多个文件，异步执行不阻塞主进程） */
 ipcMain.handle('copy-file', (_event, filePaths: string | string[]) => {
-  try {
-    const paths = Array.isArray(filePaths) ? filePaths : [filePaths]
-    const addLines = paths.map((p) => `$f.Add("${p.replace(/"/g, '`"')}")`).join('; ')
-    const psScript = `Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Collections.Specialized.StringCollection; ${addLines}; [System.Windows.Forms.Clipboard]::SetFileDropList($f)`
-    const encoded = Buffer.from(psScript, 'utf16le').toString('base64')
-    execSync(`powershell -NoProfile -EncodedCommand ${encoded}`, { timeout: 5000, windowsHide: true })
-    return true
-  } catch (err) {
-    console.error('复制文件失败:', err)
-    return false
-  }
+  return new Promise<boolean>((resolve) => {
+    try {
+      const paths = Array.isArray(filePaths) ? filePaths : [filePaths]
+      const addLines = paths.map((p) => `$f.Add("${p.replace(/"/g, '`"')}")`).join('; ')
+      const psScript = `Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Collections.Specialized.StringCollection; ${addLines}; [System.Windows.Forms.Clipboard]::SetFileDropList($f)`
+      const encoded = Buffer.from(psScript, 'utf16le').toString('base64')
+      exec(`powershell -NoProfile -EncodedCommand ${encoded}`, { timeout: 5000, windowsHide: true }, (err) => {
+        resolve(!err)
+      })
+    } catch (err) {
+      console.error('复制文件失败:', err)
+      resolve(false)
+    }
+  })
 })
 
 /** 复制文件路径 */
@@ -560,33 +617,55 @@ ipcMain.handle('set-active-tab', (_event, index: number) => {
   store.set('activeTab', index)
 })
 
-/** 获取文件缩略图（图片文件） */
+/** 获取文件缩略图（图片文件，带缓存） */
 ipcMain.handle('get-thumbnail', async (_event, filePath: string) => {
   try {
     const ext = path.extname(filePath).toLowerCase()
     const imageExts = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp', '.svg', '.ico']
     if (!imageExts.includes(ext)) return null
 
-    const data = fs.readFileSync(filePath)
+    /** 检查缓存 */
+    const cacheKey = `${filePath}:full`
+    const stats = await fsPromises.stat(filePath)
+    const cached = thumbnailCache.get(cacheKey)
+    if (cached && cached.mtime === stats.mtimeMs) return cached.data
+
+    const data = await fsPromises.readFile(filePath)
     const base64 = data.toString('base64')
     const mime = ext === '.svg' ? 'image/svg+xml' : `image/${ext.slice(1)}`
-    return `data:${mime};base64,${base64}`
+    const result = `data:${mime};base64,${base64}`
+
+    /** 写入缓存，超过上限时清除最早条目 */
+    if (thumbnailCache.size >= THUMBNAIL_CACHE_MAX) {
+      const firstKey = thumbnailCache.keys().next().value
+      if (firstKey) thumbnailCache.delete(firstKey)
+    }
+    thumbnailCache.set(cacheKey, { data: result, mtime: stats.mtimeMs })
+    return result
   } catch {
     return null
   }
 })
 
-/** 获取缩略图（指定尺寸，用于列表/卡片内联展示） */
+/** 获取缩略图（指定尺寸，用于列表/卡片内联展示，带缓存） */
 ipcMain.handle('get-small-thumbnail', async (_event, filePath: string, maxSize: number = 64) => {
   try {
     const ext = path.extname(filePath).toLowerCase()
     const imageExts = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp', '.ico']
     if (!imageExts.includes(ext)) return null
 
+    /** 检查缓存 */
+    const cacheKey = `${filePath}:${maxSize}`
+    const stats = await fsPromises.stat(filePath)
+    const cached = thumbnailCache.get(cacheKey)
+    if (cached && cached.mtime === stats.mtimeMs) return cached.data
+
     /** SVG 直接返回原始数据（体积小） */
     if (ext === '.svg') {
-      const data = fs.readFileSync(filePath)
-      return `data:image/svg+xml;base64,${data.toString('base64')}`
+      const data = await fsPromises.readFile(filePath)
+      const result = `data:image/svg+xml;base64,${data.toString('base64')}`
+      thumbnailCache.set(cacheKey, { data: result, mtime: stats.mtimeMs })
+      return result
     }
 
     /** 使用 nativeImage 缩放生成小缩略图 */
@@ -601,10 +680,39 @@ ipcMain.handle('get-small-thumbnail', async (_event, filePath: string, maxSize: 
       quality: 'good'
     })
 
-    return `data:image/png;base64,${resized.toPNG().toString('base64')}`
+    const result = `data:image/png;base64,${resized.toPNG().toString('base64')}`
+
+    /** 写入缓存 */
+    if (thumbnailCache.size >= THUMBNAIL_CACHE_MAX) {
+      const firstKey = thumbnailCache.keys().next().value
+      if (firstKey) thumbnailCache.delete(firstKey)
+    }
+    thumbnailCache.set(cacheKey, { data: result, mtime: stats.mtimeMs })
+    return result
   } catch {
     return null
   }
+})
+
+/** 合并初始化接口：一次 IPC 返回设置 + 所有文件夹内容，减少启动时多次 IPC 往返 */
+ipcMain.handle('get-init-data', async () => {
+  const settings = {
+    alwaysOnTop: store.get('alwaysOnTop'),
+    autoLaunch: store.get('autoLaunch'),
+    opacity: store.get('opacity'),
+    activeTab: store.get('activeTab'),
+    theme: store.get('theme') || 'light',
+    hotkey: store.get('hotkey') || '',
+  }
+  const folders = store.get('folders') as string[]
+  const tabs = await Promise.all(
+    folders.map(async (folderPath) => {
+      const files = await readFolderContentsAsync(folderPath)
+      const name = folderPath.split('\\').pop() || folderPath.split('/').pop() || folderPath
+      return { path: folderPath, name, files }
+    })
+  )
+  return { settings, tabs }
 })
 
 // ============ 应用生命周期 ============
