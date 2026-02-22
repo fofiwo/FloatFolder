@@ -43,8 +43,8 @@ export default function ContextMenu({ x, y, onAction, onClose }: ContextMenuProp
       style={{
         left: adjustedX,
         top: adjustedY,
-        background: '#2a2a2c',
-        border: '1px solid rgba(255,255,255,0.12)',
+        background: 'var(--mac-popup-bg)',
+        border: '1px solid var(--mac-popup-border)',
         minWidth: '200px',
         backdropFilter: 'blur(20px)',
       }}

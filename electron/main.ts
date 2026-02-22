@@ -38,7 +38,7 @@ function createWindow() {
     resizable: true,
     alwaysOnTop,
     skipTaskbar: false,
-    backgroundColor: '#1e1e1e',
+    backgroundColor: (store.get('theme') === 'dark') ? '#1e1e1e' : '#ffffff',
     roundedCorners: true,
     icon: path.join(__dirname, '../public/icon.svg'),
     webPreferences: {
