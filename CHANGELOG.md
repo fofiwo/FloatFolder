@@ -1,14 +1,16 @@
 # 更新日志
 
+## [1.8.2] - 2026-02-22
+
+### Fixed（fix）
+- 修复展开模式下点击设置按钮无反应的问题（mouseleave 闭包捕获旧 viewMode 导致立刻收起，改用 ref 读取最新值）
+- 修复快捷键调出界面时悬浮球图标闪现的问题（未勾选「显示悬浮图标」时不渲染 FloatingIcon 组件）
+
 ## [1.8.1] - 2026-02-22
 
 ### Fixed（fix）
 - 修复设置页面按钮偶发点击无响应：setWindowMode 重复调用时也会强制恢复窗口可交互状态（避免 ignoreMouseEvents 残留）
 - 修复标题栏「设置 / 主题」按钮无法点击：drag-region 中显式标记 no-drag，避免 -webkit-app-region 属性不继承导致点击失效
-
-### Changed（refactor）
-- 优化展开层 mouseleave 逻辑：使用 ref 读取最新 viewMode，避免闭包捕获旧状态
-- 快捷键存在且关闭「显示悬浮图标」时不渲染 orb，避免切换时闪现
 
 ## [1.8.0] - 2026-02-22
 
