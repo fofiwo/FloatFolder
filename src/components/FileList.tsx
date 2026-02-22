@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import type { FileInfo } from '../types'
 import { formatFileSize } from '../lib/utils'
 import FileItem from './FileItem'
@@ -26,6 +26,34 @@ export default function FileList({ files, folderPath, showToast }: FileListProps
   const [hoveredFile, setHoveredFile] = useState<FileInfo | null>(null)
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set())
   const previewTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const ctrlPressed = useRef(false)
+
+  /** 监听 Ctrl 按键状态，按住时清除悬停效果 */
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Control' && !ctrlPressed.current) {
+        ctrlPressed.current = true
+        setHoveredFile(null)
+        previewFileRef.current = null
+        if (previewTimer.current) {
+          clearTimeout(previewTimer.current)
+          previewTimer.current = null
+        }
+        setPreviewFile(null)
+      }
+    }
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'Control') {
+        ctrlPressed.current = false
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('keyup', handleKeyUp)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keyup', handleKeyUp)
+    }
+  }, [])
 
   const filteredFiles = searchQuery
     ? files.filter((f) => f.name.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -98,6 +126,7 @@ export default function FileList({ files, folderPath, showToast }: FileListProps
   )
 
   const handleMouseEnter = useCallback((e: React.MouseEvent, file: FileInfo) => {
+    if (ctrlPressed.current) return
     setHoveredFile(file)
     mousePos.current = { x: e.clientX, y: e.clientY }
     const imageExts = ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp', 'svg', 'ico']
@@ -111,6 +140,7 @@ export default function FileList({ files, folderPath, showToast }: FileListProps
   /** 鼠标移动时实时更新预览位置 */
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     mousePos.current = { x: e.clientX, y: e.clientY }
+    if (ctrlPressed.current) return
     if (previewFileRef.current) {
       setPreviewFile((prev) => prev ? { ...prev, x: e.clientX + 16, y: e.clientY + 8 } : null)
     }
