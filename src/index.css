@@ -172,7 +172,8 @@ html.icon-mode #root {
   outline: none;
   padding: 0;
   cursor: pointer;
-  background: transparent;
+  /** 不能用 transparent！Electron 的 -webkit-app-region hit-test 会穿透完全透明的元素 */
+  background: rgba(0,0,0,0.001);
   position: relative;
   z-index: 1;
   transition: background-color 0.15s ease;

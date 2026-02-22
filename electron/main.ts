@@ -140,6 +140,7 @@ function createWindow() {
 
   mainWindow.setAlwaysOnTop(true, 'floating')
 
+
   /** 应用透明度（用户设置） */
   if (typeof opacity === 'number') {
     mainWindow.setOpacity(Math.min(1, Math.max(0.4, opacity)))

@@ -4,10 +4,10 @@
 
 ### Fixed（fix）
 - **修复标题栏右侧设置/主题按钮无法点击的问题**
-  - 根因：`-webkit-app-region` 是非继承属性，按钮自身没有 `no-drag`，点击事件被 Electron 拖拽层截获
-  - 整个标题栏改为 `drag-region`，每个可交互按钮直接标记 `no-drag`（标准 Electron 模式）
-  - 新增 `.titlebar-btn` CSS 类：`-webkit-app-region: no-drag` + `position: relative` + `z-index: 1`
-  - SVG 图标添加 `pointer-events-none` 防止事件被 SVG 拦截
+  - **根因**：`SettingsPanel` 标题栏的 `-webkit-app-region: drag` 即使在面板隐藏（`opacity:0 + pointer-events:none`）时，仍会注册在 Chromium 的原生拖拽区域映射中，覆盖窗口顶部 44px，拦截所有鼠标事件
+  - 为 `SettingsPanel` 添加 `isActive` prop，仅在面板可见时启用 `drag-region`
+  - 新增 `.titlebar-btn` CSS 类，确保右侧按钮有 `no-drag` + 正确的点击样式
+  - **教训**：Chromium 的 `-webkit-app-region` 不受 CSS `pointer-events`、`opacity`、`z-index` 影响，隐藏元素的 drag 区域仍然生效
 
 ## [2.0.2] - 2026-02-22
 

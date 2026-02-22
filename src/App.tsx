@@ -290,6 +290,7 @@ export default function App() {
         }`}
       >
         <SettingsPanel
+          isActive={viewMode === 'settings'}
           currentHotkey={hotkey}
           alwaysOnTop={alwaysOnTop}
           autoLaunch={autoLaunch}

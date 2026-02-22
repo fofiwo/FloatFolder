@@ -41,7 +41,7 @@ export default memo(function TitleBar({ alwaysOnTop, theme, onTogglePin, onToggl
         </button>
       </div>
 
-      {/* 中间：标题（父容器已是 drag-region，无需重复标记） */}
+      {/* 中间：标题 */}
       <div className="flex-1 flex items-center justify-center gap-1.5">
         <span className="text-mac-text-secondary text-[13px] font-medium">FloatFolder</span>
         {alwaysOnTop && (
@@ -51,7 +51,7 @@ export default memo(function TitleBar({ alwaysOnTop, theme, onTogglePin, onToggl
         )}
       </div>
 
-      {/* 右侧：设置和主题切换按钮（每个按钮必须直接标记 no-drag，因为 -webkit-app-region 不继承） */}
+      {/* 右侧：设置和主题切换按钮 */}
       <div className="flex items-center justify-end gap-1 w-[100px]">
         <button
           onClick={onToggleTheme}

@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 
 interface SettingsPanelProps {
+  isActive: boolean
   currentHotkey: string
   alwaysOnTop: boolean
   autoLaunch: boolean
@@ -75,6 +76,7 @@ function formatHotkey(hotkey: string): string {
 }
 
 export default function SettingsPanel({
+  isActive,
   currentHotkey,
   alwaysOnTop,
   autoLaunch,
@@ -139,7 +141,7 @@ export default function SettingsPanel({
   return (
     <div className="w-full h-full flex flex-col bg-mac-bg">
       {/* 标题栏 */}
-      <div className="drag-region flex items-center justify-between h-11 px-4 flex-shrink-0 border-b border-mac-border">
+      <div className={`${isActive ? 'drag-region' : ''} flex items-center justify-between h-11 px-4 flex-shrink-0 border-b border-mac-border`}>
         <button
           onClick={onClose}
           className="no-drag w-7 h-7 flex items-center justify-center rounded-md text-mac-text-secondary hover:text-mac-text hover:bg-mac-overlay-strong transition-all"
