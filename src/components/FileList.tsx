@@ -19,6 +19,7 @@ interface ContextMenuState {
 
 export default function FileList({ files, folderPath, showToast }: FileListProps) {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
+  const contextMenuOpenRef = useRef(false)
   const [previewFile, setPreviewFile] = useState<{ file: FileInfo; x: number; y: number } | null>(null)
   const previewFileRef = useRef<FileInfo | null>(null)
   const mousePos = useRef<{ x: number; y: number }>({ x: 0, y: 0 })
@@ -33,6 +34,9 @@ export default function FileList({ files, folderPath, showToast }: FileListProps
 
   /** 同步 selectedPaths 到 ref，供 mousedown 闭包读取最新值 */
   useEffect(() => { selectedPathsRef.current = selectedPaths }, [selectedPaths])
+
+  /** ContextMenu 打开期间：抑制悬停预览（避免右键单击触发图片预览造成视线污染） */
+  useEffect(() => { contextMenuOpenRef.current = !!contextMenu }, [contextMenu])
 
   /** 监听 Ctrl 按键状态，按住时清除悬停效果 */
   useEffect(() => {
@@ -78,10 +82,26 @@ export default function FileList({ files, folderPath, showToast }: FileListProps
 
   const handleContextMenu = useCallback((e: React.MouseEvent, file: FileInfo) => {
     e.preventDefault()
+    e.stopPropagation()
+
+    /** 立即标记菜单打开，避免异步 setState 时序下短暂触发悬停预览 */
+    contextMenuOpenRef.current = true
+
+    /** 右键打开菜单时，立即关闭悬停预览（否则会和菜单叠在一起） */
+    if (previewTimer.current) {
+      clearTimeout(previewTimer.current)
+      previewTimer.current = null
+    }
+    previewFileRef.current = null
+    setPreviewFile(null)
+
     setContextMenu({ x: e.clientX, y: e.clientY, file })
   }, [])
 
-  const handleCloseContextMenu = useCallback(() => { setContextMenu(null) }, [])
+  const handleCloseContextMenu = useCallback(() => {
+    contextMenuOpenRef.current = false
+    setContextMenu(null)
+  }, [])
 
   const handleOpenFile = useCallback((file: FileInfo) => {
     window.electronAPI.openFile(file.path)
@@ -178,6 +198,10 @@ export default function FileList({ files, folderPath, showToast }: FileListProps
     if (ctrlPressed.current) return
     setHoveredFile(file)
     mousePos.current = { x: e.clientX, y: e.clientY }
+
+    /** 右键菜单打开期间不触发悬停图片预览 */
+    if (contextMenuOpenRef.current) return
+
     const imageExts = ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp', 'svg', 'ico']
     if (!imageExts.includes(file.extension)) return
     previewTimer.current = setTimeout(() => {
@@ -190,6 +214,7 @@ export default function FileList({ files, folderPath, showToast }: FileListProps
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     mousePos.current = { x: e.clientX, y: e.clientY }
     if (ctrlPressed.current) return
+    if (contextMenuOpenRef.current) return
     if (previewFileRef.current) {
       setPreviewFile((prev) => prev ? { ...prev, x: e.clientX + 16, y: e.clientY + 8 } : null)
     }
@@ -235,6 +260,7 @@ export default function FileList({ files, folderPath, showToast }: FileListProps
           window.electronAPI.showInExplorer(file.path)
           break
       }
+      contextMenuOpenRef.current = false
       setContextMenu(null)
     },
     [contextMenu, selectedPaths, showToast]
@@ -309,10 +335,10 @@ export default function FileList({ files, folderPath, showToast }: FileListProps
       </div>
 
       {/* 底部状态栏 */}
-      <div className="flex items-center justify-between px-3 py-1.5 border-t border-glass-border text-[10px] text-white/25 flex-shrink-0">
+      <div className="flex items-center justify-between px-3 py-1.5 border-t border-mac-border text-[10px] text-mac-text-tertiary flex-shrink-0 transition-colors duration-200">
         <span>{selectedPaths.size > 0 ? `已选 ${selectedPaths.size} / ` : ''}{sortedAndFilteredFiles.length} 个文件</span>
         {hoveredFile ? (
-          <span className="truncate max-w-[260px] text-white/40">
+          <span className="truncate max-w-[260px] text-mac-text-secondary">
             {hoveredFile.name} · {hoveredFile.isDirectory ? '文件夹' : formatFileSize(hoveredFile.size)}
           </span>
         ) : (
