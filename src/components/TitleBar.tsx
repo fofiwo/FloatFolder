@@ -42,7 +42,7 @@ export default memo(function TitleBar({ alwaysOnTop, theme, onTogglePin, onToggl
       </div>
 
       {/* 中间：标题 - 可拖拽区域 */}
-      <div className="drag-region flex items-center justify-center gap-1.5 w-[120px]">
+      <div className="drag-region flex-1 flex items-center justify-center gap-1.5">
         <span className="text-mac-text-secondary text-[13px] font-medium">FloatFolder</span>
         {alwaysOnTop && (
           <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" className="text-mac-accent">
