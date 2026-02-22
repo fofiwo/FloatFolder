@@ -12,7 +12,7 @@ interface TitleBarProps {
 
 export default memo(function TitleBar({ alwaysOnTop, theme, onTogglePin, onToggleTheme, onOpenSettings, onMinimize, onClose }: TitleBarProps) {
   return (
-    <div className="flex items-center h-11 px-4 flex-shrink-0 border-b border-mac-border transition-colors duration-150">
+    <div className="drag-region flex items-center h-11 px-4 flex-shrink-0 border-b border-mac-border transition-colors duration-150">
       {/* 左侧：macOS 红绿灯按钮 */}
       <div className="flex items-center gap-2 no-drag traffic-group w-[100px]">
         <button onClick={onClose} className="traffic-btn no-drag" style={{ background: '#ff5f57' }} title="隐藏到托盘" aria-label="隐藏到托盘">
@@ -41,8 +41,8 @@ export default memo(function TitleBar({ alwaysOnTop, theme, onTogglePin, onToggl
         </button>
       </div>
 
-      {/* 中间：标题 - 可拖拽区域 */}
-      <div className="drag-region flex-1 flex items-center justify-center gap-1.5">
+      {/* 中间：标题（父容器已是 drag-region，无需重复标记） */}
+      <div className="flex-1 flex items-center justify-center gap-1.5">
         <span className="text-mac-text-secondary text-[13px] font-medium">FloatFolder</span>
         {alwaysOnTop && (
           <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" className="text-mac-accent">
@@ -51,20 +51,20 @@ export default memo(function TitleBar({ alwaysOnTop, theme, onTogglePin, onToggl
         )}
       </div>
 
-      {/* 右侧：设置和主题切换按钮 */}
-      <div className="flex items-center justify-end gap-1 no-drag w-[100px]">
+      {/* 右侧：设置和主题切换按钮（每个按钮必须直接标记 no-drag，因为 -webkit-app-region 不继承） */}
+      <div className="flex items-center justify-end gap-1 w-[100px]">
         <button
           onClick={onToggleTheme}
-          className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-mac-overlay transition-colors duration-150"
+          className="titlebar-btn no-drag"
           title={theme === 'light' ? '切换到深色模式' : '切换到浅色模式'}
           aria-label={theme === 'light' ? '切换到深色模式' : '切换到浅色模式'}
         >
           {theme === 'light' ? (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-mac-text-secondary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-mac-text-secondary pointer-events-none">
               <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
             </svg>
           ) : (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-mac-text-secondary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-mac-text-secondary pointer-events-none">
               <circle cx="12" cy="12" r="5" />
               <line x1="12" y1="1" x2="12" y2="3" />
               <line x1="12" y1="21" x2="12" y2="23" />
@@ -79,11 +79,11 @@ export default memo(function TitleBar({ alwaysOnTop, theme, onTogglePin, onToggl
         </button>
         <button
           onClick={onOpenSettings}
-          className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-mac-overlay transition-colors duration-150"
+          className="titlebar-btn no-drag"
           title="设置"
           aria-label="设置"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-mac-text-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-mac-text-secondary pointer-events-none">
             <circle cx="12" cy="12" r="3" />
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
           </svg>

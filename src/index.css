@@ -159,6 +159,32 @@ html.icon-mode #root {
   opacity: 1;
 }
 
+/** 标题栏右侧按钮（设置、主题切换） */
+.titlebar-btn {
+  -webkit-app-region: no-drag;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: none;
+  outline: none;
+  padding: 0;
+  cursor: pointer;
+  background: transparent;
+  position: relative;
+  z-index: 1;
+  transition: background-color 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.titlebar-btn:hover {
+  background: var(--mac-overlay);
+}
+.titlebar-btn:active {
+  background: var(--mac-overlay-strong);
+}
+
 /** Toast 动画 */
 @keyframes toast-in {
   from { opacity: 0; transform: translate(-50%, 8px); }

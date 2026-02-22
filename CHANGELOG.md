@@ -1,5 +1,14 @@
 # 更新日志
 
+## [2.0.3] - 2026-02-22
+
+### Fixed（fix）
+- **修复标题栏右侧设置/主题按钮无法点击的问题**
+  - 根因：`-webkit-app-region` 是非继承属性，按钮自身没有 `no-drag`，点击事件被 Electron 拖拽层截获
+  - 整个标题栏改为 `drag-region`，每个可交互按钮直接标记 `no-drag`（标准 Electron 模式）
+  - 新增 `.titlebar-btn` CSS 类：`-webkit-app-region: no-drag` + `position: relative` + `z-index: 1`
+  - SVG 图标添加 `pointer-events-none` 防止事件被 SVG 拦截
+
 ## [2.0.2] - 2026-02-22
 
 ### Fixed（fix）
