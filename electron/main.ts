@@ -53,12 +53,48 @@ function clamp(value: number, min: number, max: number) {
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL
 const isDev = !!VITE_DEV_SERVER_URL
 
-/** 解析图标路径：开发环境用 public/，生产环境用 dist/（Vite 会将 public/ 复制到 dist/） */
+/** 解析图标路径：依次尝试多个候选目录，返回第一个存在的路径 */
 function resolveIcon(iconName: string): string {
-  if (isDev) {
-    return path.join(__dirname, '../public', iconName)
+  const candidates = [
+    path.join(__dirname, '../public', iconName),
+    path.join(__dirname, '../dist', iconName),
+    path.join(process.resourcesPath || '', iconName),
+  ]
+  for (const p of candidates) {
+    if (fs.existsSync(p)) return p
   }
-  return path.join(__dirname, '../dist', iconName)
+  console.warn('[resolveIcon] 未找到图标:', iconName, candidates)
+  return candidates[0]
+}
+
+/** 从文件加载 nativeImage（ICO 用 createFromPath，PNG 等用 Buffer 方式提高 Windows 兼容性） */
+function loadNativeImage(iconPath: string): Electron.NativeImage {
+  try {
+    if (!fs.existsSync(iconPath)) {
+      console.warn('[loadNativeImage] 文件不存在:', iconPath)
+      return nativeImage.createEmpty()
+    }
+    const isIco = iconPath.toLowerCase().endsWith('.ico')
+    let img: Electron.NativeImage
+
+    if (isIco) {
+      /** ICO 格式只能用 createFromPath 加载 */
+      img = nativeImage.createFromPath(iconPath)
+    } else {
+      /** PNG/JPEG 等用 Buffer 方式加载，兼容性更好 */
+      const buffer = fs.readFileSync(iconPath)
+      img = nativeImage.createFromBuffer(buffer)
+      if (img.isEmpty()) {
+        img = nativeImage.createFromPath(iconPath)
+      }
+    }
+
+    console.log('[loadNativeImage]', iconPath, '→ empty:', img.isEmpty(), 'size:', img.isEmpty() ? 'N/A' : img.getSize())
+    return img
+  } catch (err) {
+    console.error('[loadNativeImage] 加载失败:', iconPath, err)
+    return nativeImage.createEmpty()
+  }
 }
 
 function createWindow() {
@@ -87,12 +123,14 @@ function createWindow() {
     minHeight: 350,
     frame: false,
     resizable: true,
+    maximizable: false,
+    fullscreenable: false,
     alwaysOnTop: true,
     backgroundColor: '#00000000',
     skipTaskbar: false,
     hasShadow: true,
     roundedCorners: true,
-    icon: resolveIcon(process.platform === 'win32' ? 'icon.ico' : 'icon.png'),
+    icon: loadNativeImage(resolveIcon('icon.ico')),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -289,17 +327,24 @@ function saveWindowBounds() {
 
 /** 创建系统托盘 */
 function createTray() {
-  const iconPath = resolveIcon('icon-16.png')
-  let trayIcon: Electron.NativeImage
+  /** 托盘图标需要小尺寸（16~32px），优先使用已缩放的 PNG */
+  const TRAY_SIZE = 16
+  const iconCandidates = ['icon-16.png', 'icon-32.png', 'icon.ico', 'icon.png']
+  let trayIcon: Electron.NativeImage = nativeImage.createEmpty()
 
-  if (fs.existsSync(iconPath)) {
-    trayIcon = nativeImage.createFromPath(iconPath)
-  } else {
-    /** 备用：尝试加载大图标并缩放 */
-    const fallback = resolveIcon('icon.png')
-    trayIcon = fs.existsSync(fallback)
-      ? nativeImage.createFromPath(fallback).resize({ width: 16, height: 16 })
-      : nativeImage.createEmpty()
+  for (const name of iconCandidates) {
+    const iconPath = resolveIcon(name)
+    const img = loadNativeImage(iconPath)
+    if (!img.isEmpty()) {
+      const size = img.getSize()
+      if (size.width > TRAY_SIZE || size.height > TRAY_SIZE) {
+        trayIcon = img.resize({ width: TRAY_SIZE, height: TRAY_SIZE })
+      } else {
+        trayIcon = img
+      }
+      console.log('[createTray] 使用图标:', iconPath, '原始:', size, '→ 托盘:', trayIcon.getSize())
+      break
+    }
   }
 
   tray = new Tray(trayIcon)
