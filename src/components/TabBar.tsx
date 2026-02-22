@@ -48,30 +48,39 @@ export default function TabBar({ tabs, activeIndex, onTabChange, onTabRemove, on
     <div className="flex items-center gap-1 px-3 py-1.5 border-b border-mac-border flex-shrink-0 overflow-x-auto no-drag bg-mac-bg"
       style={{ scrollbarWidth: 'none' }}>
       {tabs.map((tab, index) => (
+        (() => {
+          const isActive = index === activeIndex
+          return (
         <div
           key={tab.path}
           draggable
           onDragStart={(e) => handleDragStart(e, index)}
           onDragOver={(e) => handleDragOver(e, index)}
           onDragEnd={handleDragEnd}
-          className={`group relative flex items-center gap-1.5 h-7 px-3 cursor-pointer text-[12px] flex-shrink-0 max-w-[180px] rounded-md transition-all duration-150 ${
-            index === activeIndex
-              ? 'bg-mac-elevated text-mac-text shadow-sm'
-              : 'text-mac-text-tertiary hover:text-mac-text-secondary hover:bg-mac-overlay'
-          } ${dragIndex === index ? 'opacity-40' : ''} ${dropIndex === index ? 'ring-1 ring-mac-accent/50' : ''}`}
+          className={`group relative flex items-center gap-1.5 h-7 px-3 cursor-pointer text-[12px] flex-shrink-0 max-w-[180px] rounded-md border transition-all duration-150 ${
+            isActive
+              ? 'bg-mac-surface text-mac-text border-mac-border-strong shadow-sm'
+              : 'bg-transparent text-mac-text-tertiary border-transparent hover:text-mac-text-secondary hover:bg-mac-overlay hover:border-mac-border'
+          } ${isActive ? 'after:absolute after:inset-x-2 after:-bottom-[2px] after:h-[2px] after:rounded-full after:bg-mac-accent' : ''} ${dragIndex === index ? 'opacity-40' : ''} ${dropIndex === index ? 'ring-1 ring-mac-accent/50' : ''}`}
           onClick={() => onTabChange(index)}
           title={tab.path}
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round"
-            className={`flex-shrink-0 ${index === activeIndex ? 'stroke-mac-accent' : 'stroke-current'}`} strokeWidth="2">
+            className={`flex-shrink-0 ${isActive ? 'stroke-mac-accent' : 'stroke-current'}`} strokeWidth="2">
             <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
           </svg>
 
           <span className="truncate">{tab.name}</span>
 
-          <span className={`text-[10px] flex-shrink-0 ${
-            index === activeIndex ? 'text-mac-text-secondary' : 'text-mac-text-tertiary'
-          }`}>{tab.files.length}</span>
+          <span
+            className={`ml-0.5 text-[10px] leading-none flex-shrink-0 px-1.5 h-4 inline-flex items-center justify-center rounded-full border ${
+              isActive
+                ? 'bg-[var(--mac-selected-bg)] text-mac-accent border-mac-accent/20'
+                : 'bg-mac-overlay-strong text-mac-text-tertiary border-transparent group-hover:border-mac-border'
+            }`}
+          >
+            {tab.files.length}
+          </span>
 
           <button
             onClick={(e) => { e.stopPropagation(); onTabRemove(index) }}
@@ -82,6 +91,8 @@ export default function TabBar({ tabs, activeIndex, onTabChange, onTabRemove, on
             </svg>
           </button>
         </div>
+          )
+        })()
       ))}
 
       <button

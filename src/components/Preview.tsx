@@ -26,8 +26,8 @@ export default function Preview({ file, x, y }: PreviewProps) {
       style={{
         left: Math.min(x, window.innerWidth - 240),
         top: Math.min(y, window.innerHeight - 240),
-        background: '#2a2a2c',
-        border: '1px solid rgba(255,255,255,0.1)',
+        /** 预览图容器去掉描边，靠阴影和背景层次区分（更干净） */
+        background: 'var(--mac-popup-bg)',
         maxWidth: '220px',
       }}
     >
@@ -37,7 +37,7 @@ export default function Preview({ file, x, y }: PreviewProps) {
         className="w-full object-contain"
         style={{ maxWidth: '220px', maxHeight: '200px' }}
       />
-      <div className="px-3 py-1.5 text-[11px] text-mac-text-secondary truncate text-center border-t border-mac-border">
+      <div className="px-3 py-1.5 text-[11px] text-mac-text-secondary truncate text-center bg-mac-overlay-strong">
         {file.name}
       </div>
     </div>
