@@ -73,6 +73,13 @@ html, body, #root {
   transition: background-color 0.25s ease, color 0.25s ease;
 }
 
+/** 图标模式：透明窗口不要被根节点白底污染（Windows 上会显得像“白边/白块”） */
+html.icon-mode,
+html.icon-mode body,
+html.icon-mode #root {
+  background: transparent !important;
+}
+
 /** macOS 风格滚动条 */
 ::-webkit-scrollbar {
   width: 8px;
@@ -174,20 +181,32 @@ html, body, #root {
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/** 呼吸灯动画（悬浮图标） */
-@keyframes breathing-ring {
-  0%, 100% { opacity: 0; transform: scale(0.8); }
-  50% { opacity: 0.35; transform: scale(1.1); }
+/** Siri 风格 Orb（立体感 + 光晕） */
+@keyframes siri-halo {
+  0%, 100% { opacity: 0.35; transform: scale(0.92); filter: blur(10px); }
+  50% { opacity: 0.75; transform: scale(1.05); filter: blur(14px); }
 }
-@keyframes pulse-dot {
-  0%, 100% { box-shadow: 0 0 4px 1px rgba(0,122,255,0.3); }
-  50% { box-shadow: 0 0 10px 3px rgba(0,122,255,0.6); }
+@keyframes siri-orb-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-1px); }
 }
-.breathing-ring {
-  animation: breathing-ring 3s ease-in-out infinite;
+@keyframes siri-sheen {
+  0% { transform: translateX(-60%) rotate(20deg); opacity: 0; }
+  25% { opacity: 0.22; }
+  55% { opacity: 0; }
+  100% { transform: translateX(60%) rotate(20deg); opacity: 0; }
 }
-.pulse-dot {
-  animation: pulse-dot 2.5s ease-in-out infinite;
+
+.siri-halo {
+  animation: siri-halo 2.6s ease-in-out infinite;
+}
+
+.siri-orb {
+  animation: siri-orb-float 2.8s ease-in-out infinite;
+}
+
+.siri-sheen {
+  animation: siri-sheen 3.2s ease-in-out infinite;
 }
 
 /** 展开/收起过渡 */

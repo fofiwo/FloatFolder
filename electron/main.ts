@@ -45,7 +45,9 @@ function createWindow() {
     frame: false,
     transparent: true,
     resizable: false,
-    alwaysOnTop,
+    /** 图标模式默认强置顶，避免被其他窗口遮挡 */
+    alwaysOnTop: true,
+    backgroundColor: '#00000000',
     skipTaskbar: true,
     hasShadow: false,
     roundedCorners: true,
@@ -56,6 +58,9 @@ function createWindow() {
       nodeIntegration: false
     }
   })
+
+  /** 图标模式：提升置顶级别（Windows 上更稳定） */
+  mainWindow.setAlwaysOnTop(true, 'floating')
 
   currentMode = 'icon'
 
@@ -110,6 +115,9 @@ function setWindowMode(mode: 'icon' | 'expanded') {
     mainWindow.setSize(ICON_MODE_SIZE.width, ICON_MODE_SIZE.height, true)
     mainWindow.setSkipTaskbar(true)
     mainWindow.setHasShadow(false)
+
+    /** 图标模式强置顶，避免被遮挡 */
+    mainWindow.setAlwaysOnTop(true, 'floating')
   } else {
     /** 切换到展开模式：恢复保存的窗口尺寸 */
     const bounds = store.get('windowBounds') as { x: number; y: number; width: number; height: number }
@@ -118,6 +126,10 @@ function setWindowMode(mode: 'icon' | 'expanded') {
     mainWindow.setMinimumSize(300, 350)
     mainWindow.setSize(bounds.width, bounds.height, true)
     mainWindow.setResizable(true)
+
+    /** 展开模式遵循用户的置顶设置 */
+    const alwaysOnTop = store.get('alwaysOnTop') as boolean
+    mainWindow.setAlwaysOnTop(alwaysOnTop)
   }
 }
 

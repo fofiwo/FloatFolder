@@ -31,7 +31,7 @@ export default function FloatingIcon({ onExpand, onOpenSettings, fileCount, fold
     if (hoverExpandTimer.current) clearTimeout(hoverExpandTimer.current)
     hoverExpandTimer.current = setTimeout(() => {
       onExpand()
-    }, 120)
+    }, 60)
   }
 
   const handleMouseLeave = () => {
@@ -48,11 +48,18 @@ export default function FloatingIcon({ onExpand, onOpenSettings, fileCount, fold
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <div className="relative flex items-center justify-center">
-        {/* 呼吸灯外圈 */}
-        <div className="absolute w-[52px] h-[52px] rounded-[16px] bg-mac-accent/20 breathing-ring" />
+      <div className="relative flex items-center justify-center w-full h-full">
+        {/* Siri 光晕：用 conic + blur 做“呼吸灯” */}
+        <div
+          className="pointer-events-none absolute w-[68px] h-[68px] rounded-full siri-halo"
+          style={{
+            background:
+              'conic-gradient(from 180deg, rgba(10,132,255,0.0), rgba(10,132,255,0.55), rgba(52,199,89,0.45), rgba(255,214,10,0.35), rgba(255,69,58,0.32), rgba(88,86,214,0.5), rgba(10,132,255,0.0))',
+            filter: 'blur(12px)',
+          }}
+        />
 
-        {/* 主图标容器 */}
+        {/* 主 orb：圆形 3D 立体质感 */}
         <button
           onClick={onExpand}
           onContextMenu={(e) => {
@@ -65,16 +72,34 @@ export default function FloatingIcon({ onExpand, onOpenSettings, fileCount, fold
             }
             onOpenSettings()
           }}
-          className="no-drag relative w-[44px] h-[44px] rounded-[14px] flex items-center justify-center cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95"
+          className="no-drag siri-orb relative w-[56px] h-[56px] rounded-full flex items-center justify-center cursor-pointer transition-[filter,box-shadow] duration-150 active:brightness-95"
           style={{
-            background: 'linear-gradient(135deg, #007aff 0%, #5856d6 100%)',
+            background:
+              'radial-gradient(120% 120% at 30% 25%, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.10) 35%, rgba(0,0,0,0.12) 100%), linear-gradient(135deg, rgba(10,132,255,0.95) 0%, rgba(88,86,214,0.92) 55%, rgba(255,69,58,0.72) 100%)',
             boxShadow: isHovering
-              ? '0 4px 20px rgba(0,122,255,0.5), 0 0 0 1px rgba(255,255,255,0.15) inset'
-              : '0 2px 10px rgba(0,122,255,0.3), 0 0 0 1px rgba(255,255,255,0.1) inset',
+              ? '0 10px 30px rgba(0,0,0,0.25), 0 6px 18px rgba(10,132,255,0.35), inset 0 1px 0 rgba(255,255,255,0.28)'
+              : '0 8px 22px rgba(0,0,0,0.22), 0 4px 14px rgba(10,132,255,0.28), inset 0 1px 0 rgba(255,255,255,0.22)',
           }}
-          title="点击展开 · 右键设置"
+          title="悬停展开 · 右键设置"
         >
-          {/* 文件夹图标 */}
+          {/* 轻薄高光扫过 */}
+          <div
+            className="pointer-events-none absolute inset-0 rounded-full overflow-hidden"
+            style={{
+              maskImage: 'radial-gradient(circle at 50% 45%, black 55%, transparent 80%)',
+              WebkitMaskImage: 'radial-gradient(circle at 50% 45%, black 55%, transparent 80%)',
+            }}
+          >
+            <div
+              className="siri-sheen absolute -inset-y-10 -left-1/2 w-[140%]"
+              style={{
+                background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.42), transparent)',
+                filter: 'blur(1px)',
+              }}
+            />
+          </div>
+
+          {/* 功能暗示：极简文件夹 glyph（更像 Siri “内部符号” 而不是按钮） */}
           <svg
             width="22"
             height="22"
@@ -82,22 +107,12 @@ export default function FloatingIcon({ onExpand, onOpenSettings, fileCount, fold
             fill="none"
             strokeLinecap="round"
             strokeLinejoin="round"
-            className="text-white drop-shadow-sm"
-            strokeWidth="1.8"
+            className="text-white/90 drop-shadow-sm"
+            strokeWidth="1.7"
             stroke="currentColor"
           >
             <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
-            <circle cx="17" cy="13" r="1" fill="currentColor" stroke="none" />
           </svg>
-
-          {/* 呼吸灯指示点 */}
-          <div
-            className="absolute -bottom-[3px] -right-[3px] w-[10px] h-[10px] rounded-full pulse-dot"
-            style={{
-              background: 'linear-gradient(135deg, #34c759, #30d158)',
-              border: '2px solid var(--mac-bg)',
-            }}
-          />
         </button>
 
         {/* 悬停提示信息 */}

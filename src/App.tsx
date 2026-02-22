@@ -22,6 +22,7 @@ export default function App() {
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const collapseTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isInteracting = useRef(false)
+  const expandLockTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   /** 应用主题到 html 元素 */
   useEffect(() => {
@@ -32,6 +33,12 @@ export default function App() {
       html.classList.remove('dark')
     }
   }, [theme])
+
+  /** 图标模式下强制透明背景，避免 Windows 透明窗出现白底/白边 */
+  useEffect(() => {
+    const html = document.documentElement
+    html.classList.toggle('icon-mode', viewMode === 'icon')
+  }, [viewMode])
 
   /** 初始化：加载已保存的文件夹 */
   useEffect(() => {
@@ -114,6 +121,17 @@ export default function App() {
       clearTimeout(collapseTimer.current)
       collapseTimer.current = null
     }
+
+    /**
+     * 悬停展开时窗口会立刻 resize，个别系统上会产生“抖动/不跟手”体感。
+     * 这里给一个很短的交互锁，避免刚展开就被收起逻辑抢占。
+     */
+    isInteracting.current = true
+    if (expandLockTimer.current) clearTimeout(expandLockTimer.current)
+    expandLockTimer.current = setTimeout(() => {
+      isInteracting.current = false
+    }, 250)
+
     setViewMode('expanded')
   }, [])
 
