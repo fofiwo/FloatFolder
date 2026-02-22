@@ -1,7 +1,26 @@
 {
   "name": "float-folder",
   "version": "1.0.0",
-  "description": "悬浮桌面文件夹工具 - 实时展示文件夹内容，支持拖拽、复制、置顶",
+  "description": "FloatFolder - 轻量级桌面悬浮文件夹工具，一键访问常用文件，拖拽即用，实时同步",
+  "author": "FloatFolder",
+  "license": "MIT",
+  "homepage": "https://github.com/floatfolder/float-folder#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/floatfolder/float-folder.git"
+  },
+  "bugs": {
+    "url": "https://github.com/floatfolder/float-folder/issues"
+  },
+  "keywords": [
+    "electron",
+    "desktop",
+    "file-manager",
+    "floating-window",
+    "productivity",
+    "react",
+    "typescript"
+  ],
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",

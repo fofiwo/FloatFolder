@@ -1,5 +1,14 @@
 # 更新日志
 
+## [2.0.5] - 2026-02-22
+
+### Changed（docs）
+- **开源准备**：重写 README.md 专业排版（Hero 区 + 徽章 + 四象限功能矩阵 + 技术栈表 + 项目结构树）
+- 新增 MIT LICENSE 开源协议
+- 新增 CONTRIBUTING.md 贡献指南
+- 完善 .gitignore（编辑器、系统文件、环境变量）
+- 补充 package.json 开源元数据（author/license/repository/keywords）
+
 ## [2.0.4] - 2026-02-22
 
 ### Added（feat）
