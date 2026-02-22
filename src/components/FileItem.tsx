@@ -8,7 +8,7 @@ interface FileItemProps {
   onClick: (e: React.MouseEvent) => void
   onDoubleClick: () => void
   onContextMenu: (e: React.MouseEvent) => void
-  onDragStart: (e: React.DragEvent) => void
+  onMouseDown: (e: React.MouseEvent) => void
   onMouseEnter: (e: React.MouseEvent) => void
   onMouseMove: (e: React.MouseEvent) => void
   onMouseLeave: () => void
@@ -20,7 +20,7 @@ export default memo(function FileItem({
   onClick,
   onDoubleClick,
   onContextMenu,
-  onDragStart,
+  onMouseDown,
   onMouseEnter,
   onMouseMove,
   onMouseLeave
@@ -57,8 +57,7 @@ export default memo(function FileItem({
       onClick={onClick}
       onDoubleClick={onDoubleClick}
       onContextMenu={onContextMenu}
-      draggable
-      onDragStart={onDragStart}
+      onMouseDown={onMouseDown}
       onMouseEnter={onMouseEnter}
       onMouseMove={onMouseMove}
       onMouseLeave={onMouseLeave}

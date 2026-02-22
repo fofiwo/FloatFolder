@@ -21,6 +21,7 @@ export interface AppSettings {
   autoLaunch: boolean
   opacity: number
   activeTab: number
+  theme: 'light' | 'dark'
 }
 
 /** Electron API 类型 */
@@ -42,6 +43,7 @@ export interface ElectronAPI {
   toggleAlwaysOnTop: () => Promise<boolean>
   getSettings: () => Promise<AppSettings>
   setActiveTab: (index: number) => Promise<void>
+  setTheme: (theme: 'light' | 'dark') => Promise<void>
   onFolderUpdated: (callback: (data: { folderPath: string; files: FileInfo[] }) => void) => () => void
   onSettingsChanged: (callback: (data: any) => void) => () => void
 }

@@ -28,6 +28,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   /** 设置 */
   getSettings: () => ipcRenderer.invoke('get-settings'),
   setActiveTab: (index: number) => ipcRenderer.invoke('set-active-tab', index),
+  setTheme: (theme: 'light' | 'dark') => ipcRenderer.invoke('set-theme', theme),
 
   /** 事件监听 */
   onFolderUpdated: (callback: (data: { folderPath: string; files: any[] }) => void) => {

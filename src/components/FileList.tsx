@@ -25,8 +25,13 @@ export default function FileList({ files, folderPath, showToast }: FileListProps
   const [searchQuery, setSearchQuery] = useState('')
   const [hoveredFile, setHoveredFile] = useState<FileInfo | null>(null)
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set())
+  const selectedPathsRef = useRef<Set<string>>(selectedPaths)
+  const isDraggingRef = useRef(false)
   const previewTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const ctrlPressed = useRef(false)
+
+  /** 同步 selectedPaths 到 ref，供 mousedown 闭包读取最新值 */
+  useEffect(() => { selectedPathsRef.current = selectedPaths }, [selectedPaths])
 
   /** 监听 Ctrl 按键状态，按住时清除悬停效果 */
   useEffect(() => {
@@ -73,6 +78,12 @@ export default function FileList({ files, folderPath, showToast }: FileListProps
   /** 单击选择/多选文件 */
   const handleClick = useCallback(
     (e: React.MouseEvent, file: FileInfo) => {
+      /** 拖拽刚结束，忽略本次 click */
+      if (isDraggingRef.current) {
+        isDraggingRef.current = false
+        return
+      }
+
       /** 点击时立即关闭预览 */
       if (previewTimer.current) {
         clearTimeout(previewTimer.current)
@@ -103,26 +114,52 @@ export default function FileList({ files, folderPath, showToast }: FileListProps
     [showToast]
   )
 
-  /** 拖拽开始（支持多选拖拽） */
-  const handleDragStart = useCallback(
-    (e: React.DragEvent, file: FileInfo) => {
-      e.preventDefault()
+  /** mousedown 检测拖拽手势，超过阈值后调用 Electron 原生拖拽 */
+  const DRAG_THRESHOLD = 5
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent, file: FileInfo) => {
+      if (e.button !== 0) return
+      if (e.ctrlKey || e.metaKey) return
 
-      /** 立即关闭图片预览 */
-      if (previewTimer.current) {
-        clearTimeout(previewTimer.current)
-        previewTimer.current = null
-      }
-      previewFileRef.current = null
-      setPreviewFile(null)
+      const startX = e.clientX
+      const startY = e.clientY
 
-      if (selectedPaths.has(file.path) && selectedPaths.size > 1) {
-        window.electronAPI.startDrag(Array.from(selectedPaths))
-      } else {
-        window.electronAPI.startDrag(file.path)
+      const onMove = (me: MouseEvent) => {
+        const dx = me.clientX - startX
+        const dy = me.clientY - startY
+        if (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD) {
+          isDraggingRef.current = true
+
+          /** 关闭图片预览 */
+          if (previewTimer.current) {
+            clearTimeout(previewTimer.current)
+            previewTimer.current = null
+          }
+          previewFileRef.current = null
+          setPreviewFile(null)
+
+          /** 调用 Electron 原生拖拽 */
+          const paths = selectedPathsRef.current
+          if (paths.has(file.path) && paths.size > 1) {
+            window.electronAPI.startDrag(Array.from(paths))
+          } else {
+            window.electronAPI.startDrag(file.path)
+          }
+          cleanup()
+        }
       }
+
+      const onUp = () => cleanup()
+
+      const cleanup = () => {
+        document.removeEventListener('mousemove', onMove)
+        document.removeEventListener('mouseup', onUp)
+      }
+
+      document.addEventListener('mousemove', onMove)
+      document.addEventListener('mouseup', onUp)
     },
-    [selectedPaths]
+    []
   )
 
   const handleMouseEnter = useCallback((e: React.MouseEvent, file: FileInfo) => {
@@ -233,9 +270,9 @@ export default function FileList({ files, folderPath, showToast }: FileListProps
               isSelected={selectedPaths.has(file.path)}
               onClick={(e: React.MouseEvent) => handleClick(e, file)}
               onDoubleClick={() => handleOpenFile(file)}
-              onContextMenu={(e) => handleContextMenu(e, file)}
-              onDragStart={(e) => handleDragStart(e, file)}
-              onMouseEnter={(e) => handleMouseEnter(e, file)}
+              onContextMenu={(e: React.MouseEvent) => handleContextMenu(e, file)}
+              onMouseDown={(e: React.MouseEvent) => handleMouseDown(e, file)}
+              onMouseEnter={(e: React.MouseEvent) => handleMouseEnter(e, file)}
               onMouseMove={handleMouseMove}
               onMouseLeave={handleMouseLeave}
             />

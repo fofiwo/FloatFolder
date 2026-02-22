@@ -10,15 +10,27 @@ export default function App() {
   const [tabs, setTabs] = useState<FolderTab[]>([])
   const [activeTabIndex, setActiveTabIndex] = useState(0)
   const [alwaysOnTop, setAlwaysOnTop] = useState(true)
+  const [theme, setTheme] = useState<'light' | 'dark'>('light')
   const [toastMessage, setToastMessage] = useState('')
   const [toastVisible, setToastVisible] = useState(false)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  /** 应用主题到 html 元素 */
+  useEffect(() => {
+    const html = document.documentElement
+    if (theme === 'dark') {
+      html.classList.add('dark')
+    } else {
+      html.classList.remove('dark')
+    }
+  }, [theme])
 
   /** 初始化：加载已保存的文件夹 */
   useEffect(() => {
     async function init() {
       const settings = await window.electronAPI.getSettings()
       setAlwaysOnTop(settings.alwaysOnTop)
+      setTheme(settings.theme || 'light')
 
       const folders = await window.electronAPI.getFolders()
       if (folders.length > 0) {
@@ -138,13 +150,22 @@ export default function App() {
     setAlwaysOnTop(newValue)
   }, [])
 
+  /** 切换主题 */
+  const handleToggleTheme = useCallback(() => {
+    const next = theme === 'dark' ? 'light' : 'dark'
+    setTheme(next)
+    window.electronAPI.setTheme(next)
+  }, [theme])
+
   const currentTab = tabs[activeTabIndex] || null
 
   return (
     <div className="w-full h-full flex flex-col overflow-hidden bg-mac-bg">
       <TitleBar
         alwaysOnTop={alwaysOnTop}
+        theme={theme}
         onTogglePin={handleTogglePin}
+        onToggleTheme={handleToggleTheme}
         onMinimize={() => window.electronAPI.windowMinimize()}
         onClose={() => window.electronAPI.windowClose()}
       />

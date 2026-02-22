@@ -13,7 +13,8 @@ const store = new Store({
     activeTab: 0,
     alwaysOnTop: true,
     autoLaunch: false,
-    opacity: 0.95
+    opacity: 0.95,
+    theme: 'light' as 'light' | 'dark'
   }
 })
 
@@ -342,7 +343,16 @@ ipcMain.handle('get-settings', () => {
     alwaysOnTop: store.get('alwaysOnTop'),
     autoLaunch: store.get('autoLaunch'),
     opacity: store.get('opacity'),
-    activeTab: store.get('activeTab')
+    activeTab: store.get('activeTab'),
+    theme: store.get('theme') || 'light'
+  }
+})
+
+/** 设置主题 */
+ipcMain.handle('set-theme', (_event, theme: 'light' | 'dark') => {
+  store.set('theme', theme)
+  if (mainWindow) {
+    mainWindow.setBackgroundColor(theme === 'dark' ? '#1e1e1e' : '#ffffff')
   }
 })
 

@@ -2,6 +2,58 @@
 @tailwind components;
 @tailwind utilities;
 
+/** Apple 亮色主题（默认） */
+:root {
+  --mac-bg: #ffffff;
+  --mac-surface: #f5f5f7;
+  --mac-elevated: #e8e8ed;
+  --mac-hover: #dcdce0;
+  --mac-border: rgba(0,0,0,0.1);
+  --mac-border-strong: rgba(0,0,0,0.18);
+  --mac-accent: #007aff;
+  --mac-accent-hover: #0071e3;
+  --mac-red: #ff3b30;
+  --mac-yellow: #ffcc00;
+  --mac-green: #34c759;
+  --mac-text: rgba(0,0,0,0.85);
+  --mac-text-secondary: rgba(0,0,0,0.55);
+  --mac-text-tertiary: rgba(0,0,0,0.3);
+  --mac-overlay: rgba(0,0,0,0.04);
+  --mac-overlay-strong: rgba(0,0,0,0.08);
+  --mac-scrollbar: rgba(0,0,0,0.15);
+  --mac-scrollbar-hover: rgba(0,0,0,0.3);
+  --mac-popup-bg: rgba(255,255,255,0.96);
+  --mac-popup-border: rgba(0,0,0,0.12);
+  --mac-selected-bg: rgba(0,122,255,0.12);
+  --mac-selected-ring: rgba(0,122,255,0.3);
+}
+
+/** Apple 暗色主题 */
+.dark {
+  --mac-bg: #1e1e1e;
+  --mac-surface: #2a2a2c;
+  --mac-elevated: #323234;
+  --mac-hover: #3a3a3c;
+  --mac-border: rgba(255,255,255,0.08);
+  --mac-border-strong: rgba(255,255,255,0.14);
+  --mac-accent: #0a84ff;
+  --mac-accent-hover: #409cff;
+  --mac-red: #ff453a;
+  --mac-yellow: #ffd60a;
+  --mac-green: #32d74b;
+  --mac-text: rgba(255,255,255,0.88);
+  --mac-text-secondary: rgba(255,255,255,0.55);
+  --mac-text-tertiary: rgba(255,255,255,0.3);
+  --mac-overlay: rgba(255,255,255,0.04);
+  --mac-overlay-strong: rgba(255,255,255,0.08);
+  --mac-scrollbar: rgba(255,255,255,0.12);
+  --mac-scrollbar-hover: rgba(255,255,255,0.22);
+  --mac-popup-bg: rgba(42,42,44,0.96);
+  --mac-popup-border: rgba(255,255,255,0.12);
+  --mac-selected-bg: rgba(10,132,255,0.15);
+  --mac-selected-ring: rgba(10,132,255,0.3);
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -12,11 +64,13 @@ html, body, #root {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: #1e1e1e;
+  background: var(--mac-bg);
+  color: var(--mac-text);
   user-select: none;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 /** macOS 风格滚动条 */
@@ -28,13 +82,13 @@ html, body, #root {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--mac-scrollbar);
   border-radius: 4px;
   border: 2px solid transparent;
   background-clip: content-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.22);
+  background: var(--mac-scrollbar-hover);
   background-clip: content-box;
 }
 
@@ -52,17 +106,17 @@ html, body, #root {
   border-radius: 6px;
 }
 .file-row:hover {
-  background: rgba(255, 255, 255, 0.055);
+  background: var(--mac-overlay);
 }
-.file-item:active {
-  background: rgba(255, 255, 255, 0.1);
+.file-row:active {
+  background: var(--mac-selected-bg);
 }
 .file-item-selected {
-  background: rgba(96, 165, 250, 0.15) !important;
-  box-shadow: inset 0 0 0 1px rgba(96, 165, 250, 0.3);
+  background: var(--mac-selected-bg) !important;
+  box-shadow: inset 0 0 0 1px var(--mac-selected-ring);
 }
 .file-row.selected {
-  background: rgba(10, 132, 255, 0.2);
+  background: var(--mac-selected-bg);
 }
 
 /** macOS 风格红绿灯按钮 */
@@ -112,7 +166,7 @@ html, body, #root {
 /** macOS 风格聚焦环 */
 .mac-focus:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.35);
+  box-shadow: 0 0 0 3px var(--mac-selected-ring);
 }
 
 /** 平滑过渡 */
