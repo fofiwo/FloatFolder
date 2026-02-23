@@ -26,9 +26,29 @@ let registeredHotkey: string | null = null
 const watchers: Map<string, chokidar.FSWatcher> = new Map()
 const watcherDebounceTimers: Map<string, ReturnType<typeof setTimeout>> = new Map()
 
-/** 缩略图内存缓存：key = filePath:maxSize, value = { data, mtime } */
+/** 缩略图内存缓存：key = filePath:maxSize, value = { data, mtime }，LRU 策略（访问时移至末尾） */
 const thumbnailCache: Map<string, { data: string; mtime: number }> = new Map()
 const THUMBNAIL_CACHE_MAX = 200
+const THUMBNAIL_MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
+
+/** LRU 缓存读取：命中时将条目移至末尾，保证最近访问的条目不会被淘汰 */
+function cacheGet(key: string): { data: string; mtime: number } | undefined {
+  const entry = thumbnailCache.get(key)
+  if (entry) {
+    thumbnailCache.delete(key)
+    thumbnailCache.set(key, entry)
+  }
+  return entry
+}
+
+/** LRU 缓存写入：超过上限时淘汰最早的条目 */
+function cacheSet(key: string, value: { data: string; mtime: number }) {
+  if (thumbnailCache.size >= THUMBNAIL_CACHE_MAX) {
+    const firstKey = thumbnailCache.keys().next().value
+    if (firstKey) thumbnailCache.delete(firstKey)
+  }
+  thumbnailCache.set(key, value)
+}
 
 /** 窗口位置保存防抖定时器 */
 let saveWindowBoundsTimer: ReturnType<typeof setTimeout> | null = null
@@ -111,8 +131,19 @@ function createWindow() {
 
   /** 如果是第一次启动（位置为默认值100,100），则居中显示 */
   const isFirstLaunch = bounds?.x === 100 && bounds?.y === 100
-  const windowX = isFirstLaunch ? centerX : (bounds?.x ?? centerX)
-  const windowY = isFirstLaunch ? centerY : (bounds?.y ?? centerY)
+  let windowX = isFirstLaunch ? centerX : (bounds?.x ?? centerX)
+  let windowY = isFirstLaunch ? centerY : (bounds?.y ?? centerY)
+
+  /** 检查窗口是否在可见屏幕范围内（多显示器热插拔后位置可能越界） */
+  const allDisplays = screen.getAllDisplays()
+  const isVisible = allDisplays.some((display) => {
+    const { x, y, width, height } = display.workArea
+    return windowX >= x - 100 && windowX < x + width && windowY >= y - 100 && windowY < y + height
+  })
+  if (!isVisible) {
+    windowX = centerX
+    windowY = centerY
+  }
 
   /** 根据主题设置初始背景色，避免启动时黑屏 */
   const theme = store.get('theme') as string
@@ -526,7 +557,8 @@ let pollTimer: ReturnType<typeof setInterval> | null = null
 
 /** 选择文件夹 */
 ipcMain.handle('select-folder', async () => {
-  const result = await dialog.showOpenDialog(mainWindow!, {
+  if (!mainWindow || mainWindow.isDestroyed()) return null
+  const result = await dialog.showOpenDialog(mainWindow, {
     properties: ['openDirectory'],
     title: '选择要监控的文件夹'
   })
@@ -540,7 +572,7 @@ ipcMain.handle('select-folder', async () => {
     startWatching(folderPath)
   }
 
-  const files = readFolderContents(folderPath)
+  const files = await readFolderContentsAsync(folderPath)
   /** 切换到新添加的标签页 */
   store.set('activeTab', folders.indexOf(folderPath))
   return { folderPath, files, folders }
@@ -581,7 +613,7 @@ ipcMain.handle('copy-file', (_event, filePaths: string | string[]) => {
   return new Promise<boolean>((resolve) => {
     try {
       const paths = Array.isArray(filePaths) ? filePaths : [filePaths]
-      const addLines = paths.map((p) => `$f.Add("${p.replace(/"/g, '`"')}")`).join('; ')
+      const addLines = paths.map((p) => `$f.Add('${p.replace(/'/g, "''")}')`).join('; ')
       const psScript = `Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Collections.Specialized.StringCollection; ${addLines}; [System.Windows.Forms.Clipboard]::SetFileDropList($f)`
       const encoded = Buffer.from(psScript, 'utf16le').toString('base64')
       exec(`powershell -NoProfile -EncodedCommand ${encoded}`, { timeout: 5000, windowsHide: true }, (err) => {
@@ -740,20 +772,18 @@ ipcMain.handle('get-thumbnail', async (_event, filePath: string) => {
     /** 检查缓存 */
     const cacheKey = `${filePath}:full`
     const stats = await fsPromises.stat(filePath)
-    const cached = thumbnailCache.get(cacheKey)
+    const cached = cacheGet(cacheKey)
     if (cached && cached.mtime === stats.mtimeMs) return cached.data
+
+    /** 超过 50MB 的文件跳过内联缩略图，避免内存溢出 */
+    if (stats.size > THUMBNAIL_MAX_FILE_SIZE) return null
 
     const data = await fsPromises.readFile(filePath)
     const base64 = data.toString('base64')
     const mime = ext === '.svg' ? 'image/svg+xml' : `image/${ext.slice(1)}`
     const result = `data:${mime};base64,${base64}`
 
-    /** 写入缓存，超过上限时清除最早条目 */
-    if (thumbnailCache.size >= THUMBNAIL_CACHE_MAX) {
-      const firstKey = thumbnailCache.keys().next().value
-      if (firstKey) thumbnailCache.delete(firstKey)
-    }
-    thumbnailCache.set(cacheKey, { data: result, mtime: stats.mtimeMs })
+    cacheSet(cacheKey, { data: result, mtime: stats.mtimeMs })
     return result
   } catch {
     return null
@@ -770,16 +800,19 @@ ipcMain.handle('get-small-thumbnail', async (_event, filePath: string, maxSize: 
     /** 检查缓存 */
     const cacheKey = `${filePath}:${maxSize}`
     const stats = await fsPromises.stat(filePath)
-    const cached = thumbnailCache.get(cacheKey)
+    const cached = cacheGet(cacheKey)
     if (cached && cached.mtime === stats.mtimeMs) return cached.data
 
     /** SVG 直接返回原始数据（体积小） */
     if (ext === '.svg') {
       const data = await fsPromises.readFile(filePath)
       const result = `data:image/svg+xml;base64,${data.toString('base64')}`
-      thumbnailCache.set(cacheKey, { data: result, mtime: stats.mtimeMs })
+      cacheSet(cacheKey, { data: result, mtime: stats.mtimeMs })
       return result
     }
+
+    /** 超过 50MB 的文件跳过缩略图生成，避免 nativeImage 阻塞主进程 */
+    if (stats.size > THUMBNAIL_MAX_FILE_SIZE) return null
 
     /** 使用 nativeImage 缩放生成小缩略图 */
     const img = nativeImage.createFromPath(filePath)
@@ -795,12 +828,7 @@ ipcMain.handle('get-small-thumbnail', async (_event, filePath: string, maxSize: 
 
     const result = `data:image/png;base64,${resized.toPNG().toString('base64')}`
 
-    /** 写入缓存 */
-    if (thumbnailCache.size >= THUMBNAIL_CACHE_MAX) {
-      const firstKey = thumbnailCache.keys().next().value
-      if (firstKey) thumbnailCache.delete(firstKey)
-    }
-    thumbnailCache.set(cacheKey, { data: result, mtime: stats.mtimeMs })
+    cacheSet(cacheKey, { data: result, mtime: stats.mtimeMs })
     return result
   } catch {
     return null

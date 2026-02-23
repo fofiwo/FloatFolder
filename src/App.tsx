@@ -158,9 +158,11 @@ export default function App() {
       await window.electronAPI.removeFolder(tab.path)
       setTabs((prev) => {
         const newTabs = prev.filter((_, i) => i !== index)
-        if (activeTabIndex >= newTabs.length) {
-          setActiveTabIndex(Math.max(0, newTabs.length - 1))
-        }
+        const newIndex = newTabs.length === 0 ? 0
+          : index <= activeTabIndex ? Math.max(0, activeTabIndex - 1)
+          : activeTabIndex
+        setActiveTabIndex(newIndex)
+        window.electronAPI.setActiveTab(newIndex)
         return newTabs
       })
     },
