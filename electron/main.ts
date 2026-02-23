@@ -139,7 +139,8 @@ function createWindow() {
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      backgroundThrottling: false
     }
   })
 
@@ -206,7 +207,10 @@ function refreshTrayMenu() {
       click: () => {
         mainWindow?.show()
         mainWindow?.focus()
-        mainWindow?.webContents.send('open-settings')
+        /** 延迟发送，等待渲染进程从后台节流中恢复 */
+        setTimeout(() => {
+          mainWindow?.webContents.send('open-settings')
+        }, 200)
       }
     },
     {
@@ -835,9 +839,15 @@ app.whenReady().then(() => {
 
   /** 系统休眠唤醒后：重启 watcher + 刷新所有文件夹 */
   powerMonitor.on('resume', () => {
-    console.log('[powerMonitor] 系统唤醒，重启文件监听并刷新文件夹')
+    console.log('[powerMonitor] 系统唤醒，重启文件监听、刷新文件夹、重注册快捷键')
     restartAllWatchers()
     setTimeout(() => refreshAllFolders(), 1000)
+
+    /** 休眠唤醒后重新注册全局快捷键（Windows 休眠可能导致注册丢失） */
+    const savedHotkey = store.get('hotkey') as string
+    if (savedHotkey) {
+      registerGlobalHotkey(savedHotkey)
+    }
   })
 
   /** 窗口显示/聚焦时刷新文件夹内容（防抖 500ms） */

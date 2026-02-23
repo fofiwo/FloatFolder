@@ -1,5 +1,12 @@
 # 更新日志
 
+## [2.1.1] - 2026-02-23
+
+### Fixed（fix）
+- **修复长时间空闲后快捷键无法唤醒窗口**：`powerMonitor.on('resume')` 中新增重新注册全局快捷键，防止 Windows 休眠后注册丢失
+- **修复托盘"设置"点击无响应**：延迟 200ms 发送 `open-settings` IPC，等待渲染进程从后台节流中恢复
+- **禁用 Chromium 后台节流**：`backgroundThrottling: false`，防止渲染进程长时间空闲后被冻结导致 IPC 无响应
+
 ## [2.1.0] - 2026-02-23
 
 ### Fixed（fix）
