@@ -158,15 +158,17 @@ export default function App() {
       await window.electronAPI.removeFolder(tab.path)
       setTabs((prev) => {
         const newTabs = prev.filter((_, i) => i !== index)
-        const newIndex = newTabs.length === 0 ? 0
-          : index <= activeTabIndex ? Math.max(0, activeTabIndex - 1)
-          : activeTabIndex
-        setActiveTabIndex(newIndex)
-        window.electronAPI.setActiveTab(newIndex)
+        setActiveTabIndex((prevActive) => {
+          const newIndex = newTabs.length === 0 ? 0
+            : index <= prevActive ? Math.max(0, prevActive - 1)
+            : prevActive
+          window.electronAPI.setActiveTab(newIndex)
+          return newIndex
+        })
         return newTabs
       })
     },
-    [tabs, activeTabIndex]
+    [tabs]
   )
 
   /** 拖拽重排标签页 */

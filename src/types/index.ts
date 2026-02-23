@@ -48,6 +48,8 @@ export interface ElectronAPI {
   setActiveTab: (index: number) => Promise<void>
   setTheme: (theme: 'light' | 'dark') => Promise<void>
   setHotkey: (hotkey: string) => Promise<boolean>
+  pauseHotkey: () => Promise<void>
+  resumeHotkey: () => Promise<void>
   setWindowMode: (mode: 'icon' | 'expanded') => Promise<void>
   setAlwaysOnTop: (enable: boolean) => Promise<boolean>
   setAutoLaunch: (enable: boolean) => Promise<boolean>

@@ -33,6 +33,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setActiveTab: (index: number) => ipcRenderer.invoke('set-active-tab', index),
   setTheme: (theme: 'light' | 'dark') => ipcRenderer.invoke('set-theme', theme),
   setHotkey: (hotkey: string) => ipcRenderer.invoke('set-hotkey', hotkey),
+  pauseHotkey: () => ipcRenderer.invoke('pause-hotkey'),
+  resumeHotkey: () => ipcRenderer.invoke('resume-hotkey'),
   setAlwaysOnTop: (enable: boolean) => ipcRenderer.invoke('set-always-on-top', enable),
   setAutoLaunch: (enable: boolean) => ipcRenderer.invoke('set-auto-launch', enable),
   setOpacity: (opacity: number) => ipcRenderer.invoke('set-opacity', opacity),

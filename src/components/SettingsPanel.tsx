@@ -97,9 +97,11 @@ export default function SettingsPanel({
     onThemeChange(theme === 'dark' ? 'light' : 'dark')
   }, [theme, onThemeChange])
 
-  /** 监听快捷键录制 */
+  /** 监听快捷键录制：录制期间临时注销全局快捷键，结束后恢复 */
   useEffect(() => {
     if (!isRecording) return
+
+    window.electronAPI.pauseHotkey()
 
     const handler = (e: KeyboardEvent) => {
       e.preventDefault()
@@ -119,7 +121,10 @@ export default function SettingsPanel({
     }
 
     window.addEventListener('keydown', handler, true)
-    return () => window.removeEventListener('keydown', handler, true)
+    return () => {
+      window.removeEventListener('keydown', handler, true)
+      window.electronAPI.resumeHotkey()
+    }
   }, [isRecording])
 
   /** 保存快捷键 */
@@ -353,7 +358,7 @@ export default function SettingsPanel({
 
       {/* 底部版本信息 */}
       <div className="px-4 py-2 border-t border-mac-border text-center">
-        <span className="text-[10px] text-mac-text-tertiary">FloatFolder v1.1.0</span>
+        <span className="text-[10px] text-mac-text-tertiary">FloatFolder v{__APP_VERSION__}</span>
       </div>
     </div>
   )

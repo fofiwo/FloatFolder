@@ -3,8 +3,12 @@ import react from '@vitejs/plugin-react'
 import electron from 'vite-plugin-electron'
 import electronRenderer from 'vite-plugin-electron-renderer'
 import path from 'path'
+import pkg from './package.json'
 
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(pkg.version)
+  },
   server: {
     /** 强制 IPv4 监听，避免 IPv6/IPv4 不匹配导致 Electron 连接失败 */
     host: '127.0.0.1',

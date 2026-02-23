@@ -29,25 +29,14 @@ export default memo(function FileCard({
   const cardRef = useRef<HTMLDivElement>(null)
   const isImage = isImageFile(file.extension)
 
-  /** 懒加载缩略图：仅在元素进入视口时加载 */
+  /** 虚拟滚动已保证只渲染可见元素，mount 时直接加载缩略图 */
   useEffect(() => {
-    if (!isImage || !cardRef.current) return
+    if (!isImage) return
     let cancelled = false
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          window.electronAPI.getSmallThumbnail(file.path, 160).then((data) => {
-            if (!cancelled && data) setThumbnail(data)
-          })
-          observer.disconnect()
-        }
-      },
-      { threshold: 0.1 }
-    )
-
-    observer.observe(cardRef.current)
-    return () => { cancelled = true; observer.disconnect() }
+    window.electronAPI.getSmallThumbnail(file.path, 160).then((data) => {
+      if (!cancelled && data) setThumbnail(data)
+    })
+    return () => { cancelled = true }
   }, [file.path, isImage])
 
   return (

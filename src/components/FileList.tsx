@@ -250,12 +250,14 @@ export default memo(function FileList({ files, folderPath, showToast }: FileList
         })
         lastClickedIndex.current = currentIndex
       } else {
-        /** 普通单击：选中并复制 */
+        /** 普通单击：选中，非文件夹时自动复制 */
         setSelectedPaths(new Set([file.path]))
         lastClickedIndex.current = currentIndex
-        window.electronAPI.copyFile(file.path).then((success) => {
-          showToast(success ? `已复制\n${file.name}` : '复制失败')
-        })
+        if (!file.isDirectory) {
+          window.electronAPI.copyFile(file.path).then((success) => {
+            showToast(success ? `已复制\n${file.name}` : '复制失败')
+          })
+        }
       }
     },
     [showToast, sortedAndFilteredFiles]
@@ -323,6 +325,7 @@ export default memo(function FileList({ files, folderPath, showToast }: FileList
 
     const imageExts = ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp', 'svg', 'ico']
     if (!imageExts.includes(file.extension)) return
+    if (previewTimer.current) clearTimeout(previewTimer.current)
     previewTimer.current = setTimeout(() => {
       previewFileRef.current = file
       setPreviewFile({ file, x: mousePos.current.x + 16, y: mousePos.current.y + 8 })

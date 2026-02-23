@@ -716,6 +716,20 @@ ipcMain.handle('get-settings', () => {
   }
 })
 
+/** 快捷键录制期间临时注销全局快捷键，避免录制时触发窗口显示/隐藏 */
+ipcMain.handle('pause-hotkey', () => {
+  if (registeredHotkey) {
+    globalShortcut.unregister(registeredHotkey)
+  }
+})
+
+/** 快捷键录制结束后恢复全局快捷键 */
+ipcMain.handle('resume-hotkey', () => {
+  if (registeredHotkey) {
+    registerGlobalHotkey(registeredHotkey)
+  }
+})
+
 /** 设置全局快捷键 */
 ipcMain.handle('set-hotkey', (_event, hotkey: string) => {
   const success = registerGlobalHotkey(hotkey)

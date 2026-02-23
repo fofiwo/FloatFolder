@@ -1,5 +1,17 @@
 # 更新日志
 
+## [2.1.3] - 2026-02-23
+
+### Fixed（fix）
+- **修复单击文件夹误触发复制**：单击文件夹时仅选中，不再复制到剪贴板
+- **修复快捷键录制时窗口被隐藏**：录制期间临时注销全局快捷键，结束后自动恢复
+- **修复快速删除多个标签页索引错乱**：`handleRemoveTab` 改用函数式更新获取最新 `activeTabIndex`，避免闭包捕获过期值
+- **修复悬停预览定时器泄漏**：`handleMouseEnter` 创建新定时器前先清除上一个
+
+### Changed（refactor）
+- **移除虚拟滚动下多余的 IntersectionObserver**：虚拟滚动已保证只渲染可见元素，缩略图改为 mount 时直接加载，减少 observer 创建/销毁开销
+- **版本号动态读取**：`SettingsPanel` 版本号从 `package.json` 通过 Vite define 注入，不再硬编码
+
 ## [2.1.2] - 2026-02-23
 
 ### Fixed（fix）
