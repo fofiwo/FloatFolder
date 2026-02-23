@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Tray, Menu, dialog, shell, nativeImage, clipboard, globalShortcut, screen } from 'electron'
+import { app, BrowserWindow, ipcMain, Tray, Menu, dialog, shell, nativeImage, clipboard, globalShortcut, screen, powerMonitor } from 'electron'
 import path from 'path'
 import { execSync, exec } from 'child_process'
 import fs from 'fs'
@@ -483,6 +483,41 @@ function stopWatching(folderPath: string) {
   }
 }
 
+/** 刷新所有文件夹内容并通知渲染进程 */
+async function refreshAllFolders() {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  const folders = store.get('folders') as string[]
+  for (const folderPath of folders) {
+    try {
+      const files = await readFolderContentsAsync(folderPath)
+      mainWindow.webContents.send('folder-updated', { folderPath, files })
+    } catch (err) {
+      console.error('[refreshAllFolders] 刷新失败:', folderPath, err)
+    }
+  }
+}
+
+/** 重启所有文件夹监听（休眠唤醒后 watcher 可能失效） */
+function restartAllWatchers() {
+  const folders = store.get('folders') as string[]
+  for (const folderPath of folders) {
+    const existing = watchers.get(folderPath)
+    if (existing) {
+      existing.close()
+      watchers.delete(folderPath)
+    }
+    startWatching(folderPath)
+  }
+  console.log('[restartAllWatchers] 已重启', folders.length, '个文件夹监听')
+}
+
+/** 窗口聚焦刷新防抖定时器 */
+let focusRefreshTimer: ReturnType<typeof setTimeout> | null = null
+
+/** 定时轮询间隔（毫秒） */
+const POLL_INTERVAL = 5 * 60 * 1000
+let pollTimer: ReturnType<typeof setInterval> | null = null
+
 // ============ IPC 处理 ============
 
 /** 选择文件夹 */
@@ -797,6 +832,32 @@ app.whenReady().then(() => {
 
   /** 启动时同步开机自启状态（避免仅切换时生效，重启后状态不一致） */
   setAutoLaunch(store.get('autoLaunch') as boolean)
+
+  /** 系统休眠唤醒后：重启 watcher + 刷新所有文件夹 */
+  powerMonitor.on('resume', () => {
+    console.log('[powerMonitor] 系统唤醒，重启文件监听并刷新文件夹')
+    restartAllWatchers()
+    setTimeout(() => refreshAllFolders(), 1000)
+  })
+
+  /** 窗口显示/聚焦时刷新文件夹内容（防抖 500ms） */
+  if (mainWindow) {
+    const onWindowFocus = () => {
+      if (focusRefreshTimer) clearTimeout(focusRefreshTimer)
+      focusRefreshTimer = setTimeout(() => {
+        refreshAllFolders()
+      }, 500)
+    }
+    mainWindow.on('show', onWindowFocus)
+    mainWindow.on('focus', onWindowFocus)
+  }
+
+  /** 定时轮询兜底：每 5 分钟刷新一次文件夹内容 */
+  pollTimer = setInterval(() => {
+    if (mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible()) {
+      refreshAllFolders()
+    }
+  }, POLL_INTERVAL)
 })
 
 app.on('window-all-closed', () => {
@@ -810,6 +871,11 @@ app.on('activate', () => {
 })
 
 app.on('before-quit', () => {
+  /** 停止定时轮询 */
+  if (pollTimer) {
+    clearInterval(pollTimer)
+    pollTimer = null
+  }
   /** 关闭所有文件监听 */
   watchers.forEach((watcher) => watcher.close())
   watchers.clear()
