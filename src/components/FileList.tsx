@@ -285,14 +285,18 @@ export default memo(function FileList({ files, folderPath, showToast }: FileList
           previewFileRef.current = null
           setPreviewFile(null)
 
-          /** 调用 Electron 原生拖拽 */
+          /** 调用 Electron 原生拖拽，await 等待拖拽结束后清理状态 */
           const paths = selectedPathsRef.current
-          if (paths.has(file.path) && paths.size > 1) {
-            window.electronAPI.startDrag(Array.from(paths))
-          } else {
-            window.electronAPI.startDrag(file.path)
-          }
+          const dragPaths = paths.has(file.path) && paths.size > 1
+            ? Array.from(paths)
+            : file.path
           cleanup()
+          window.electronAPI.startDrag(dragPaths).finally(() => {
+            isDraggingRef.current = false
+            setHoveredFile(null)
+            previewFileRef.current = null
+            setPreviewFile(null)
+          })
         }
       }
 

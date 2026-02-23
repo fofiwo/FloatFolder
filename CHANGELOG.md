@@ -1,5 +1,12 @@
 # 更新日志
 
+## [2.1.0] - 2026-02-23
+
+### Fixed（fix）
+- **修复拖拽完成后鼠标仍显示拖拽对象信息**：将原生拖拽从 `send`（fire-and-forget）改为 `invoke`（request-response），渲染进程等待拖拽结束后重置状态
+  - 拖拽结束后自动清除 `isDraggingRef`、`hoveredFile`、`previewFile` 等状态
+  - 更新 `startDrag` 类型定义为 `Promise<void>`
+
 ## [2.0.9] - 2026-02-23
 
 ### Fixed（fix）

@@ -596,8 +596,8 @@ ipcMain.handle('copy-path', (_event, filePath: string) => {
   return true
 })
 
-/** 原生文件拖拽（支持单个或多个文件） */
-ipcMain.on('ondragstart', (event, filePaths: string | string[]) => {
+/** 原生文件拖拽（支持单个或多个文件，invoke 模式让渲染进程感知拖拽结束） */
+ipcMain.handle('start-drag', (event, filePaths: string | string[]) => {
   const paths = Array.isArray(filePaths) ? filePaths : [filePaths]
 
   /** 统一图标逻辑：优先用第一个文件的缩略图，无效则用默认图标 */

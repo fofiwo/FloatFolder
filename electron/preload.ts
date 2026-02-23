@@ -20,8 +20,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getThumbnail: (filePath: string) => ipcRenderer.invoke('get-thumbnail', filePath),
   getSmallThumbnail: (filePath: string, maxSize?: number) => ipcRenderer.invoke('get-small-thumbnail', filePath, maxSize),
 
-  /** 原生拖拽 */
-  startDrag: (filePaths: string | string[]) => ipcRenderer.send('ondragstart', filePaths),
+  /** 原生拖拽（invoke 模式，拖拽结束后 Promise resolve） */
+  startDrag: (filePaths: string | string[]) => ipcRenderer.invoke('start-drag', filePaths),
 
   /** 窗口操作 */
   windowMinimize: () => ipcRenderer.invoke('window-minimize'),

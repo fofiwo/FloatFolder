@@ -40,7 +40,7 @@ export interface ElectronAPI {
   copyPath: (filePath: string) => Promise<boolean>
   getThumbnail: (filePath: string) => Promise<string | null>
   getSmallThumbnail: (filePath: string, maxSize?: number) => Promise<string | null>
-  startDrag: (filePaths: string | string[]) => void
+  startDrag: (filePaths: string | string[]) => Promise<void>
   windowMinimize: () => Promise<void>
   windowClose: () => Promise<void>
   toggleAlwaysOnTop: () => Promise<boolean>
